@@ -34,8 +34,6 @@
   main { flex:1; display:flex; align-items:center; justify-content:center; padding:32px; min-width:0; }
   .frame { padding:16px; background:#0d0a07; border-radius:4px; box-shadow:0 24px 60px rgba(0,0,0,.5), inset 0 0 0 1px #2a2018; }
   canvas { display:block; image-rendering:pixelated; max-width:min(80vw,1040px); max-height:82vh; width:auto; height:auto; background:#000; }
-  .palrow { display:flex; gap:3px; margin-top:10px; flex-wrap:wrap; }
-  .sw { width:18px; height:18px; border-radius:3px; border:1px solid rgba(255,255,255,.12); }
   .note { color:var(--muted); font-size:11px; margin-top:6px; }
 </style>
 </head>
@@ -52,7 +50,6 @@
 
   <div class="field">
     <div id="styles"></div>
-    <div class="note" id="famNote"></div>
   </div>
 
   <div class="field">
@@ -86,10 +83,6 @@
     </div>
   </div>
 
-  <div class="field">
-    <div class="seedline">сид: <code id="seedTxt">—</code></div>
-    <div class="palrow" id="pal"></div>
-  </div>
 </aside>
 
 <main>
@@ -115,6 +108,43 @@ const PRESETS = {
     themes:[[0,3,4,8],[0,5,6,8],[0,9,8,5],[0,2,4,8]],
     medal:{bg:8,ring:2,lite:9,core:5}, spandrel:{bg:8,fg:2,lite:9},
     border:{bg:2,fg:8,lite:5,gA:1,gB:8} },
+
+  // --- Safavid court carpets (refrences-persian) ---
+  persArdabil: { name:"Ардебиль", family:"Персидские · индиго, золотой медальон", layout:"medallion", medalStyle:"ardabil", borderStyle:"cartouche", fieldMood:"dense",
+    ref:"Ardabil_Carpet_LACMA",
+    colors:["#0f111c","#1d2c52","#cda53f","#9c2a24","#ece1c0","#3c6486","#5f8b4c","#b9863c","#6f1b18","#27466d","#dcc986"],
+    o:0, g:1, stem:6, leaf:6, filler:4,
+    themes:[[0,3,10,4],[0,2,10,4],[0,5,9,4],[0,6,10,3]],
+    motifPool:["shahAbbasi","palmette7","rosette7","carnation7"], fillerPool:["bud3","leaf3","vineleaf5","cloudBand"], borderMotifs:["rosette7","cartoucheMotif"],
+    medal:{bg:2,ring:4,lite:10,core:3}, spandrel:{bg:1,fg:2,lite:4},
+    border:{bg:8,fg:10,lite:4,gA:2,gB:4} },
+
+  persSalting: { name:"Сэлтинг", family:"Персидские · чёрный индиго, красный медальон", layout:"medallion", medalStyle:"lobed", borderStyle:"cartouche", fieldMood:"dense",
+    ref:"Saltingtaeppe",
+    colors:["#0a0b12","#121626","#b12a28","#d7c089","#ece2cb","#356a86","#5d7f46","#7c1c1a","#3a5a7c","#c98f4a","#9a3a2c"],
+    o:0, g:1, stem:6, leaf:6, filler:4,
+    themes:[[0,2,4,3],[0,5,4,8],[0,6,4,3],[0,9,4,2]],
+    motifPool:["shahAbbasi","palmette7","rosette7","tulip5","carnation7"], fillerPool:["bud3","cloudBand","leaf3"], borderMotifs:["rosette7","cartoucheMotif"],
+    medal:{bg:2,ring:4,lite:3,core:5}, spandrel:{bg:2,fg:4,lite:3},
+    border:{bg:2,fg:4,lite:3,gA:4,gB:1} },
+
+  persRothschild: { name:"Ротшильд", family:"Персидские · розовый, кремовый медальон", layout:"medallion", medalStyle:"mandorla", borderStyle:"cartouche", fieldMood:"dense",
+    ref:"Rothschild_Small_Silk",
+    colors:["#1e0f12","#a83048","#ece3cd","#1d3a5e","#caa23c","#cf7f93","#3f6f4d","#7a1830","#6f97c0","#d8b878","#5c8f6f"],
+    o:0, g:1, stem:6, leaf:6, filler:2,
+    themes:[[0,4,9,7],[0,3,8,2],[0,6,10,4],[0,5,2,7]],
+    motifPool:["shahAbbasi","rosette7","palmette7","daisy7","cloudBand"], fillerPool:["bud3","leaf3","cloudBand"], borderMotifs:["rosette7","cartoucheMotif"],
+    medal:{bg:2,ring:3,lite:9,core:7}, spandrel:{bg:2,fg:3,lite:9},
+    border:{bg:1,fg:2,lite:9,gA:4,gB:2} },
+
+  persKerman: { name:"Керман (Сангушко)", family:"Персидские · вино, медальон Керман", layout:"medallion", medalStyle:"curv", borderStyle:"rosetteMarch", fieldMood:"dense",
+    ref:"Sanguszko_carpet",
+    colors:["#170b0c","#6e1c1f","#c87a3c","#e7d3a0","#2f6a6a","#caa23c","#94371f","#3a5a7c","#5d7f46","#d99a4a","#3a1416"],
+    o:0, g:1, stem:8, leaf:8, filler:3,
+    themes:[[0,2,3,6],[0,4,3,5],[0,9,3,6],[0,8,3,5]],
+    motifPool:["shahAbbasi","rosette7","palmette7","carnation7","cypress"], fillerPool:["bud3","leaf3","cloudBand"], borderMotifs:["rosette7","palmette7"],
+    medal:{bg:2,ring:3,lite:9,core:6}, spandrel:{bg:10,fg:3,lite:2},
+    border:{bg:10,fg:3,lite:5,gA:5,gB:3} },
 
   kazak: { name:"Казах", family:"Кавказские · ряд медальонов", layout:"rowmedallion",
     colors:["#120d0a","#b41f1f","#14406e","#4f86c0","#d99a2a","#1f6b4a","#e8ddc4","#c85a3a","#7a1414","#101010","#5fae8a"],
@@ -164,6 +194,79 @@ const PRESETS = {
     themes:[[0,2,5,4],[0,3,5,4],[0,6,5,2],[0,4,8,5]],
     medal:{bg:2,ring:5,lite:4,core:6}, spandrel:{bg:2,fg:5,lite:4},
     border:{bg:2,fg:5,lite:4,gA:4,gB:5} },
+
+  // --- Soviet machine-made wall carpets (soviet-references) ---
+  sovKrasnyGold: { name:"Советский классический", family:"Советские · красный медальон", layout:"medallion", medalStyle:"sovietClassic", fieldMood:"dense", allScale:0.82, noEdgeMedallions:true, noSideMeds:true, centralType:"native",
+    ref:"IMG_20220825 / png-8",
+    colors:["#150d09","#b8241d","#ead9aa","#6f1712","#241a13","#5d703c","#8b5a24","#c7502a","#d4aa45","#0b0907","#b58a58"],
+    o:9, g:1, stem:3, leaf:5, filler:3,
+    themes:[[9,1,2,3],[9,3,2,7],[9,7,2,1],[9,8,2,3]],
+    motifPool:["shahAbbasi","palmette7","carnation7","rosette7"], fillerPool:["bud3","leaf3","rosette5b"], borderMotifs:["carnation7","rosette7"],
+    medal:{bg:2,ring:3,lite:8,core:1}, spandrel:{bg:1,fg:3,lite:2},
+    border:{bg:3,fg:2,lite:1,gA:7,gB:2} },
+
+  sovKazak: { name:"Советский казах", family:"Советские · геометрический медальон", layout:"medallion", medalStyle:"step", borderStyle:"darkFloral", fieldMood:"dense", allScale:1.35,
+    ref:"png-1 / png-4",
+    colors:["#120d0a","#b02620","#1a3a5e","#e3d2a4","#d68a2c","#2f6a4a","#c75a2a","#7a1612","#3f72a0","#101418","#cf9a44"],
+    o:0, g:1, stem:7, leaf:7, filler:7,
+    themes:[[0,4,3,8],[0,8,3,4],[0,3,10,4],[0,4,3,10]],
+    motifPool:["star7","rosette7","cross3","daisy7"], fillerPool:["bud3","cross3","leaf3"], borderMotifs:["star7","rosette5b"],
+    medal:{bg:6,ring:3,lite:4,core:8}, spandrel:{bg:2,fg:3,lite:4},
+    border:{bg:9,fg:4,lite:3,gA:6,gB:3} },
+
+  afghanElephant: { name:"Афганский слоновый", family:"Афганские · крупные тёмные гёли",
+    ref:"(_DSC3321)-27429", layout:"rowmedallion", medalStyle:"afghanElephant", borderStyle:"darkFloral", fieldMood:"open", fieldStyle:"sparse",
+    motifPool:["afghanElephantGul","afghanHook","afghanComb"], fillerPool:["afghanTinyTalisman","afghanComb","afghanHook"], borderMotifs:["afghanHook","afghanTinyTalisman"],
+    colors:["#130d0b","#922820","#18232d","#d36c2d","#b54824","#5e1714","#d3aa62","#ead9ab","#672019","#0b0f14","#c64727"],
+    o:9, g:1, stem:8, leaf:5, filler:7,
+    themes:[[9,3,7,4],[9,6,7,10],[9,5,7,3],[9,10,6,7]],
+    medal:{bg:2,ring:7,lite:3,core:10}, spandrel:{bg:2,fg:7,lite:3},
+    border:{bg:8,fg:7,lite:3,gA:4,gB:7} },
+
+  afghanCreamGarden: { name:"Афганский кремовая кайма", family:"Афганские · садовые ромбы",
+    ref:"(_DSC6939)-23267", layout:"allover", medalStyle:"step", borderStyle:"creamGarden", fieldMood:"dense",
+    motifPool:["afghanSteppedDiamond","afghanComb","afghanHook"], fillerPool:["afghanTinyTalisman","afghanComb","afghanSteppedDiamond"], borderMotifs:["afghanSteppedDiamond","afghanComb"],
+    colors:["#17100d","#b22a22","#17263a","#c65a2d","#e8d49b","#2e633f","#946026","#d8a94f","#6d1d18","#10151c","#f1dfad"],
+    o:9, g:1, stem:6, leaf:5, filler:10,
+    themes:[[9,4,10,8],[9,5,10,3],[9,7,4,1],[9,3,10,5]],
+    medal:{bg:10,ring:2,lite:4,core:8}, spandrel:{bg:10,fg:2,lite:3},
+    border:{bg:10,fg:8,lite:5,gA:3,gB:2} },
+
+  afghanLobed: { name:"Афганский лопастной", family:"Афганские · чёрно-красные розетки",
+    ref:"(_DSC9168)-25446", layout:"allover", medalStyle:"afghanLobed", borderStyle:"rosetteMarch", fieldMood:"dense",
+    motifPool:["afghanLobedBlack","afghanHook","afghanTinyTalisman"], fillerPool:["afghanTinyTalisman","afghanHook","afghanComb"], borderMotifs:["afghanLobedBlack","afghanTinyTalisman"],
+    colors:["#100b0b","#c52624","#151820","#7d1a18","#d94a2d","#b56c34","#e7cf9a","#f3ead5","#5b1515","#0a0b0d","#9a2e26"],
+    o:9, g:1, stem:8, leaf:5, filler:6,
+    themes:[[9,3,6,4],[9,4,7,1],[9,6,7,10],[9,10,5,6]],
+    medal:{bg:2,ring:6,lite:4,core:1}, spandrel:{bg:2,fg:6,lite:4},
+    border:{bg:8,fg:6,lite:4,gA:1,gB:7} },
+
+  afghanTripleDiamond: { name:"Афганский тройной ромб", family:"Афганские · кремовые ступени",
+    ref:"(Img0060)-25434", layout:"rowmedallion", medalStyle:"afghanStepped", borderStyle:"creamVine", fieldMood:"open",
+    motifPool:["afghanSteppedDiamond","afghanComb","afghanHook"], fillerPool:["afghanTinyTalisman","afghanComb","afghanHook"], borderMotifs:["afghanHook","rosette5b"],
+    colors:["#17100b","#a83d21","#112238","#c7652c","#ead49d","#6b2a18","#8d5529","#d6aa54","#6c1d19","#0b1017","#f0dfad"],
+    o:9, g:1, stem:6, leaf:5, filler:4,
+    themes:[[9,4,10,3],[9,5,10,1],[9,7,4,8],[9,2,10,3]],
+    medal:{bg:10,ring:2,lite:4,core:1}, spandrel:{bg:10,fg:2,lite:3},
+    border:{bg:10,fg:8,lite:5,gA:3,gB:2} },
+
+  afghanRedGulGrid: { name:"Афганский красный гёль", family:"Афганские · плотная сетка гёлей",
+    ref:"(_DSC1074Б)-32510", layout:"gul", gulType:"afghanRound", gulScale:0.82, borderStyle:"turkmenDense",
+    motifPool:["afghanLobedBlack","afghanTinyTalisman","afghanHook"], fillerPool:["afghanTinyTalisman","afghanHook"], borderMotifs:["afghanTinyTalisman","afghanHook"],
+    colors:["#120b0a","#7f1d19","#291017","#df6b35","#b73425","#111722","#d4a15b","#ead8b0","#5f1817","#0a0d12","#c8452b"],
+    o:9, g:1, stem:8, leaf:6, filler:7, gulGround:5, gulSecondary:4, gulBoss:7,
+    themes:[[9,4,6,7],[9,3,7,4],[9,8,6,7]],
+    medal:{bg:5,ring:7,lite:6,core:4}, spandrel:{bg:5,fg:7,lite:6},
+    border:{bg:8,fg:7,lite:4,gA:3,gB:6} },
+
+  afghanPanelPrayer: { name:"Афганский панельный", family:"Афганские · двойные нишевые поля",
+    ref:"(_DSC3311)-27411", layout:"compartment", medalStyle:"step", borderStyle:"engsiX", fieldMood:"dense",
+    motifPool:["afghanPanelNiche","afghanComb","afghanHook"], fillerPool:["afghanTinyTalisman","afghanComb","afghanPanelNiche"], borderMotifs:["ashikX","afghanTinyTalisman"],
+    colors:["#0f0b0b","#761d1b","#1a1420","#b23223","#e6d39a","#5a1614","#925223","#c89145","#4f1413","#080b10","#cf4b2f"],
+    o:9, g:1, stem:8, leaf:5, filler:4,
+    themes:[[9,4,1,3],[9,7,4,8],[9,5,4,6],[9,3,7,4]],
+    medal:{bg:2,ring:4,lite:7,core:3}, spandrel:{bg:2,fg:4,lite:7},
+    border:{bg:2,fg:4,lite:3,gA:1,gB:4} },
 };
 
 const FORMATS = { "3:2":3/2, "4:3":4/3, "16:9":16/9, "1:1":1 };
@@ -189,10 +292,25 @@ const STENCILS = {
   bird5:["o...l",".ommc","ommmo",".omo.",".o.o."],
   bird7:["g....l.",".g.omoo","gg.mmmc",".ggmmmo","..ommo.","...o.o."],
   quad7:["....l.l","....omo","ommmmmo","ommmmlo",".o.o.o."],
+  afghanElephantGul:["..oo.oo..",".ommmmmo.","omlclclmo","omcmcmcmo",".olclclo.","..omcmo..","...omo...","..o...o.."],
+  afghanSteppedDiamond:["....o....","...olc...","..olclo..",".olcmclo.","olcmcmclo",".olcmclo.","..olclo..","...olc...","....o...."],
+  afghanLobedBlack:["..oomoo..",".omlclmo.","omcmmmcm","ommmcmmmo","olcmcmclo","ommmcmmmo","omcmmmcm",".omlclmo.","..oomoo.."],
+  afghanComb:["o.o.o.o","omomomo",".mcmcm.","..lcl..","..g.g.."],
+  afghanHook:["o...o","om.mo",".mcm.","om.mo","o...o"],
+  afghanPanelNiche:["ooooooo","ommmmmo","omlclmo","omlclmo","ommmmmo","o.....o"],
+  afghanTinyTalisman:["omo","mcm","omo"],
+  ashikX:["l.....l","ml...lm",".ml.lm.","..lcl..",".ml.lm.","ml...lm","l.....l"],
+  // Safavid court vocabulary (refrences-persian)
+  shahAbbasi:["...ooo...","..omcmo..",".omlclmo.","omclclcmo","oclcmclco","omclclcmo",".omlclmo.","..og.go..","...ogo..."],
+  mosqueLamp:["..ooo..",".omlmo.",".olclo.","oclclco","oclmlco",".olclo.",".omcmo.","..ooo..","...o..."],
+  cloudBand:[".ooo...","omml...","omcmoo.","ommcml.",".oommc.","...oom.","....oo."],
+  cypress:["..o..","..g..",".lgl.",".ggg.",".lgl.","lgggl",".ggg.","..o..","..o.."],
+  cartoucheMotif:["o.l.o",".lcl.","ocmco",".lcl.","o.l.o"],
 };
 const ANIMALS=["bird5","bird7","quad7"];
 const FLOWERS=["rosette7","flower5","star7","daisy7","carnation7","rosette5b","tulip5"];
 const FILLERS=["bud3","leaf3","palmette5","palmette7","vineleaf5","cross3"];
+const AFGHAN_MOTIFS=["afghanElephantGul","afghanSteppedDiamond","afghanLobedBlack","afghanComb","afghanHook","afghanTinyTalisman"];
 // rotate (0-3 quarter-turns) / flip a stencil for variety
 function transformStencil(s,rot,flip){
   let gg=s.map(r=>r.split(''));
@@ -276,23 +394,102 @@ function bandMain(g,W,H,e,w,P,field){
   for(let x=e+1;x<W-1-e;x++) set4(g,W,H,x,mid,P.stem);
   for(let y=e+1;y<H-1-e;y++) set4(g,W,H,mid,y,P.stem);
   const thA=P.themes[0], thB=P.themes[Math.min(2,P.themes.length-1)];
+  const bm=P.borderMotifs||["flower5","star5"];
   let i=0;
-  for(let x=e+per;x<=W/2;x+=per,i++) stampF(g,W,H,x,mid,(i&1)?STENCILS.star5:STENCILS.flower5,(i&1)?thB:thA,P.leaf,0);
+  for(let x=e+per;x<=W/2;x+=per,i++) stampF(g,W,H,x,mid,STENCILS[bm[i%bm.length]],(i&1)?thB:thA,P.leaf,0);
   i=0;
-  for(let y=e+per;y<=H/2;y+=per,i++) stampF(g,W,H,mid,y,(i&1)?STENCILS.star5:STENCILS.flower5,(i&1)?thB:thA,P.leaf,0);
-  stampF(g,W,H,mid,mid,STENCILS.flower5,thA,P.leaf,0);
-  for(let x=e+per+(per>>1);x<=W/2;x+=per) stampF(g,W,H,x,mid,STENCILS.bud3,thB,P.leaf,0);
-  for(let y=e+per+(per>>1);y<=H/2;y+=per) stampF(g,W,H,mid,y,STENCILS.bud3,thB,P.leaf,0);
+  for(let y=e+per;y<=H/2;y+=per,i++) stampF(g,W,H,mid,y,STENCILS[bm[i%bm.length]],(i&1)?thB:thA,P.leaf,0);
+  stampF(g,W,H,mid,mid,STENCILS[bm[0]],thA,P.leaf,0);
+  const small=P.fillerPool?P.fillerPool[0]:"bud3";
+  for(let x=e+per+(per>>1);x<=W/2;x+=per) stampF(g,W,H,x,mid,STENCILS[small],thB,P.leaf,0);
+  for(let y=e+per+(per>>1);y<=H/2;y+=per) stampF(g,W,H,mid,y,STENCILS[small],thB,P.leaf,0);
+}
+function bandRosetteMarch(g,W,H,e,w,P,field){
+  bandFill(g,W,H,e,w,field);
+  const mid=e+(w>>1), per=Math.max(5,w+2);
+  const thA=P.themes[0], thB=P.themes[Math.min(1,P.themes.length-1)];
+  const bm=P.borderMotifs||["rosette5b","cross3"];
+  for(let x=e+1;x<W-1-e;x++) set4(g,W,H,x,mid,(x&1)?P.stem:P.border.fg);
+  for(let y=e+1;y<H-1-e;y++) set4(g,W,H,mid,y,(y&1)?P.stem:P.border.fg);
+  let i=0;
+  for(let x=e+per;x<=W/2;x+=per,i++) stampF(g,W,H,x,mid,STENCILS[bm[i%bm.length]],(i&1)?thB:thA,P.leaf,0);
+  i=0;
+  for(let y=e+per;y<=H/2;y+=per,i++) stampF(g,W,H,mid,y,STENCILS[bm[i%bm.length]],(i&1)?thB:thA,P.leaf,0);
+  stampF(g,W,H,mid,mid,STENCILS[bm[0]],thA,P.leaf,0);
 }
 
+// Safavid cartouche band: alternating elongated cartouches and round rosettes on a coloured ground
+function bandCartouche(g,W,H,e,w,P,field){
+  const B=P.border, o=P.o;
+  bandFill(g,W,H,e,w,field);
+  const mid=e+(w>>1);
+  const hw=Math.max(1,(w>>1)-1);                 // cartouche half-thickness
+  const cl=Math.max(4,Math.round(w*1.5));        // cartouche half-length
+  const ros=Math.max(2,(w>>1)-1);
+  const step=cl+ros+2;                            // centre spacing of cartouche↔rosette
+  const cm=STENCILS[(P.borderMotifs&&P.borderMotifs[1])||"cartoucheMotif"];
+  // mirrored mini-rosette (drawMiniDiamond itself does not mirror)
+  const rose=(cx,cy)=>{ for(let d=ros;d>=0;d--){ const v=[o,B.fg,B.lite][(ros-d)%3];
+      for(let k=-d;k<=d;k++){ const j=d-Math.abs(k); set4(g,W,H,cx+k,cy+j,v); set4(g,W,H,cx+k,cy-j,v); } } };
+  // one cartouche, oriented along the band (horiz=true along x, else along y)
+  const cart=(cx,cy,horiz)=>{
+    for(let a=-cl;a<=cl;a++) for(let b=-hw;b<=hw;b++){
+      const str=Math.abs(a)-(cl-hw);
+      const rr= str>0 ? Math.hypot(str,b)/hw : Math.abs(b)/hw;
+      if(rr>1) continue;
+      let v=B.fg; if(rr>0.78) v=o; else if(rr>0.55) v=B.lite;
+      set4(g,W,H, cx+(horiz?a:b), cy+(horiz?b:a), v);
+    }
+    stampF(g,W,H,cx,cy,cm,[o,B.lite,field,B.fg],B.lite,0);
+  };
+  let i=0; for(let x=e+cl+1; x<=W/2; x+=step, i++){ (i&1)? rose(x,mid) : cart(x,mid,true); }
+  i=0;     for(let y=e+cl+1; y<=H/2; y+=step, i++){ (i&1)? rose(mid,y) : cart(mid,y,false); }
+  rose(mid,mid);                                  // corner rosette (set4 → all four corners)
+}
+// engsi/hatchli band: a march of cream ashik (X) motifs on a dark ground, with beaded squares between
+function bandEngsi(g,W,H,e,w,P,field){
+  const B=P.border, o=P.o;
+  bandFill(g,W,H,e,w,field);
+  const mid=e+(w>>1), per=Math.max(6,w+1), off=Math.round(per*0.6);
+  const th=[o,B.fg,B.lite,B.lite];                 // cream X with red inner accents
+  for(let x=e+off;x<=W/2;x+=per) stampF(g,W,H,x,mid,STENCILS.ashikX,th,P.leaf,0);
+  for(let y=e+off;y<=H/2;y+=per) stampF(g,W,H,mid,y,STENCILS.ashikX,th,P.leaf,0);
+  stampF(g,W,H,mid,mid,STENCILS.ashikX,th,P.leaf,0);
+  const sq=(cx,cy)=>{ set4(g,W,H,cx,cy,B.lite); set4(g,W,H,cx-1,cy,B.fg); set4(g,W,H,cx+1,cy,B.fg); };
+  for(let x=e+off+(per>>1);x<=W/2;x+=per) sq(x,mid);
+  for(let y=e+off+(per>>1);y<=H/2;y+=per) sq(mid,y);
+}
+// undulating cream vine: a sine stem with blossoms alternating above/below the midline
+function bandVineWave(g,W,H,e,w,P,field){
+  bandFill(g,W,H,e,w,field);
+  const mid=e+(w>>1), per=Math.max(5,w), amp=Math.max(1,(w>>1)-1);
+  const wave=t=>Math.round(Math.sin(t/per*Math.PI*2)*amp);
+  for(let x=e+1;x<W-1-e;x++) set4(g,W,H,x,mid+wave(x-e),P.stem);
+  for(let y=e+1;y<H-1-e;y++) set4(g,W,H,mid+wave(y-e),y,P.stem);
+  const bm=P.borderMotifs||["afghanHook","rosette5b"];
+  let i=0;
+  for(let x=e+per;x<=W/2;x+=per,i++) stampF(g,W,H,x,mid+((i&1)?-amp:amp),STENCILS[bm[i%bm.length]],P.themes[i%P.themes.length],P.leaf,0);
+  i=0;
+  for(let y=e+per;y<=H/2;y+=per,i++) stampF(g,W,H,mid+((i&1)?-amp:amp),y,STENCILS[bm[i%bm.length]],P.themes[i%P.themes.length],P.leaf,0);
+}
 function drawBorders(g,W,H,P,bands){
-  const o=P.o, B=P.border, u=Math.min(W,H), field=lightestIdx(P.colors); let e=0;
+  const o=P.o, B=P.border, u=Math.min(W,H);
+  const field=(P.borderStyle==="darkFloral"||P.borderStyle==="rosetteMarch"||P.borderStyle==="cartouche"||P.borderStyle==="engsiX")?B.bg:lightestIdx(P.colors);
+  let e=0;
   const line=v=>{ setRingRect(g,W,H,e,v); e++; };
   const candy=()=>{ guardRect(g,W,H,e,B.gA,B.gB); e++; };
   line(o); candy();
   if(bands>=2){ const wd=clampv(Math.round(u/40),2,4); bandDarkFloral(g,W,H,e,wd,P); e+=wd; candy(); }
   line(o);
-  const wm=clampv(Math.round(u/15),5,11); bandMain(g,W,H,e,wm,P,field); e+=wm;
+  if(P.borderStyle==="cartouche"){ const wm=clampv(Math.round(u/13),6,13); bandCartouche(g,W,H,e,wm,P,field); e+=wm; }
+  else if(P.borderStyle==="engsiX"){ const wm=clampv(Math.round(u/14),5,11); bandEngsi(g,W,H,e,wm,P,field); e+=wm; }
+  else if(P.borderStyle==="creamVine"){ const wm=clampv(Math.round(u/15),5,11); bandVineWave(g,W,H,e,wm,P,field); e+=wm; }
+  else { const wm=clampv(Math.round(u/15),5,11); bandMain(g,W,H,e,wm,P,field); e+=wm; }
+  if(P.borderStyle==="rosetteMarch"||P.borderStyle==="creamGarden"){
+    line(o);
+    const wr=clampv(Math.round(u/18),5,10);
+    bandRosetteMarch(g,W,H,e,wr,P,P.borderStyle==="creamGarden"?lightestIdx(P.colors):B.bg); e+=wr;
+  }
   line(o); candy();
   if(bands>=1){ const ws=clampv(Math.round(u/44),2,4); bandSawtooth(g,W,H,e,ws,B.bg,B.gA); e+=ws; line(o); }
   return e;
@@ -301,25 +498,27 @@ function drawBorders(g,W,H,P,bands){
 // ===== dense allover floral field =====
 function layoutAllover(g,W,H,fs,P,rnd,density,bold){
   const hW=W/2,hH=H/2;
-  const S=clampv(Math.round(Math.min(W,H)/(8+density)), bold?9:5, bold?16:11);
+  let S=clampv(Math.round(Math.min(W,H)/(8+density)), bold?9:5, bold?16:11);
+  if(P.allScale) S=Math.round(S*P.allScale);            // sparser lattice → ground colour breathes
+  const flowers=P.motifPool||FLOWERS, fillers=P.fillerPool||FILLERS;
   const mot=pool=>transformStencil(STENCILS[pick(rnd,pool)], rnd()*4|0, rnd()<0.5);
   // main lattice: vines + flowers (each randomly rotated/flipped)
   for(let y=fs+S; y<=hH; y+=S){
     for(let x=fs+S; x<=hW; x+=S){
       vine(g,W,H,x,y,x+S,y+S,P.stem,fs);
       vine(g,W,H,x,y,x+S,y-S,P.stem,fs);
-      stampF(g,W,H,x,y,mot(FLOWERS),pick(rnd,P.themes),P.leaf,fs);
+      stampF(g,W,H,x,y,mot(flowers),pick(rnd,P.themes),P.leaf,fs);
     }
   }
   // offset lattice: buds/leaves between
   const o2=Math.floor(S/2);
   for(let y=fs+o2+S; y<=hH; y+=S){
     for(let x=fs+o2+S; x<=hW; x+=S){
-      stampF(g,W,H,x,y,mot(FILLERS),pick(rnd,P.themes),P.leaf,fs);
+      stampF(g,W,H,x,y,mot(fillers),pick(rnd,P.themes),P.leaf,fs);
     }
   }
   // fine filler speckle (symmetric)
-  const area=(hW-fs)*(hH-fs), n=Math.floor(area/26);
+  const area=(hW-fs)*(hH-fs), n=Math.floor(area/(26*(P.allScale?P.allScale*1.7:1)));
   for(let i=0;i<n;i++){
     const x=fs+1+Math.floor(rnd()*(hW-fs-1));
     const y=fs+1+Math.floor(rnd()*(hH-fs-1));
@@ -330,20 +529,29 @@ function layoutAllover(g,W,H,fs,P,rnd,density,bold){
 // open field: sparse detached floral sprays, clean ground, halo around the medallion
 function stampSpray(g,W,H,cx,cy,P,rnd,fs){
   const th=pick(rnd,P.themes);
-  stampF(g,W,H,cx,cy,transformStencil(STENCILS[pick(rnd,FLOWERS)],rnd()*4|0,rnd()<.5),th,P.leaf,fs);
-  stampF(g,W,H,cx,cy+3,STENCILS.leaf3,th,P.leaf,fs);
-  stampF(g,W,H,cx-3,cy+1,transformStencil(STENCILS.leaf3,1,false),th,P.leaf,fs);
-  stampF(g,W,H,cx+3,cy+1,transformStencil(STENCILS.leaf3,1,true),th,P.leaf,fs);
-  if(rnd()<0.5) stampF(g,W,H,cx,cy-4,STENCILS.bud3,pick(rnd,P.themes),P.leaf,fs);
+  const motifs=P.motifPool||FLOWERS, fillers=P.fillerPool||["leaf3","bud3"];
+  // sparse field: only small filler motifs on plain ground (the big guls are the row medallions)
+  if(P.fieldStyle==="sparse"){
+    stampF(g,W,H,cx,cy,transformStencil(STENCILS[pick(rnd,fillers)],rnd()*4|0,rnd()<.5),th,P.leaf,fs);
+    if(rnd()<0.4) stampF(g,W,H,cx,cy+3,STENCILS[pick(rnd,fillers)],th,P.leaf,fs);
+    return;
+  }
+  stampF(g,W,H,cx,cy,transformStencil(STENCILS[pick(rnd,motifs)],rnd()*4|0,rnd()<.5),th,P.leaf,fs);
+  stampF(g,W,H,cx,cy+3,STENCILS[pick(rnd,fillers)],th,P.leaf,fs);
+  stampF(g,W,H,cx-3,cy+1,transformStencil(STENCILS[pick(rnd,fillers)],1,false),th,P.leaf,fs);
+  stampF(g,W,H,cx+3,cy+1,transformStencil(STENCILS[pick(rnd,fillers)],1,true),th,P.leaf,fs);
+  if(rnd()<0.5) stampF(g,W,H,cx,cy-4,STENCILS[pick(rnd,fillers)],pick(rnd,P.themes),P.leaf,fs);
 }
 function layoutOpen(g,W,H,fs,P,rnd,density,haloR){
   const hW=W/2,hH=H/2,cx=W/2,cy=H/2,u=Math.min(W,H);
-  const S=clampv(Math.round(u/(6+density)),8,20);          // airy but not barren
+  let S=clampv(Math.round(u/(6+density)),8,20);            // airy but not barren
+  if(P.fieldStyle==="sparse") S=clampv(Math.round(S*1.5),12,30);   // calm ground between large guls
   const hx=haloR||0, hy=hx*1.12;                            // halo matches the actual medallion
   for(let y=fs+Math.round(S*0.7); y<=hH; y+=S){
     for(let x=fs+Math.round(S*0.7); x<=hW; x+=S){
       const px=x+Math.round((rnd()*2-1)*S*0.18), py=y+Math.round((rnd()*2-1)*S*0.18);
       if(hx>0){ const ndx=(px-cx)/hx, ndy=(py-cy)/hy; if(ndx*ndx+ndy*ndy<1.05) continue; }
+      if(P.fieldStyle==="sparse" && rnd()<0.4) continue;   // leave ~40% of cells as plain ground
       stampSpray(g,W,H,px,py,P,rnd,fs);
     }
   }
@@ -373,7 +581,57 @@ function drawMedallion(g,W,H,cx,cy,r,P,rnd,opts){
   const style=(opts&&opts.style)||P.medalStyle;
   if(style==="star") drawMedallionStar(g,W,H,cx,cy,r,P,rnd,opts);
   else if(style==="curv") drawMedallionCurv(g,W,H,cx,cy,r,P,rnd,opts);
+  else if(style==="sovietClassic") drawMedallionSovietClassic(g,W,H,cx,cy,r,P,rnd,opts);
+  else if(style==="ardabil") drawMedallionArdabil(g,W,H,cx,cy,r,P,rnd,opts);
+  else if(style==="lobed") drawMedallionLobed(g,W,H,cx,cy,r,P,rnd,opts);
+  else if(style==="mandorla") drawMedallionMandorla(g,W,H,cx,cy,r,P,rnd,opts);
+  else if(style==="afghanElephant") drawAfghanElephantMedallion(g,W,H,cx,cy,r,P,rnd);
+  else if(style==="afghanStepped") drawAfghanSteppedMedallion(g,W,H,cx,cy,r,P,rnd);
+  else if(style==="afghanLobed") drawAfghanLobedMedallion(g,W,H,cx,cy,r,P,rnd);
   else drawMedallionStep(g,W,H,cx,cy,r,P,rnd);
+}
+function drawAfghanElephantMedallion(g,W,H,cx,cy,r,P,rnd){
+  const M=P.medal, ax=Math.max(4,Math.round(r*0.95)), ay=Math.max(4,Math.round(r*1.12));
+  for(let dy=-ay;dy<=ay;dy++) for(let dx=-ax;dx<=ax;dx++){
+    const d=Math.abs(dx)/ax+Math.abs(dy)/ay;
+    if(d>1.18) continue;
+    let v=M.bg;
+    if(d>1.04) v=P.o; else if(d>0.88) v=M.ring;
+    if(Math.abs(dx)<2 || Math.abs(dy)<2) v=M.ring;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  stampF(g,W,H,cx,cy,STENCILS.afghanElephantGul,[P.o,M.bg,M.lite,M.core],M.lite,0);
+  const off=Math.round(r*0.55);
+  stampF(g,W,H,cx-off,cy,STENCILS.afghanComb,[P.o,M.ring,M.lite,M.core],M.lite,0);
+  stampF(g,W,H,cx+off,cy,transformStencil(STENCILS.afghanComb,2,true),[P.o,M.ring,M.lite,M.core],M.lite,0);
+  drawMiniDiamond(g,W,H,cx,cy-Math.round(r*0.75),2,[M.lite,M.ring,P.o]);
+}
+function drawAfghanSteppedMedallion(g,W,H,cx,cy,r,P,rnd){
+  const M=P.medal;
+  fillDiamond(g,W,H,cx,cy,r,M.bg);
+  for(let d=r;d>Math.max(2,r-4);d--) ringDiamond(g,W,H,cx,cy,d,d&1?P.o:M.ring);
+  for(let t=-r;t<=r;t+=2){
+    const j=r-Math.abs(t);
+    set4(g,W,H,cx+t,cy+j+1,M.ring); set4(g,W,H,cx+t,cy-j-1,M.ring);
+  }
+  const r2=Math.max(3,Math.round(r*0.55));
+  fillDiamond(g,W,H,cx,cy,r2,M.lite);
+  ringDiamond(g,W,H,cx,cy,r2,P.o);
+  stampF(g,W,H,cx,cy,STENCILS.afghanSteppedDiamond,[P.o,M.ring,M.lite,M.core],P.leaf,0);
+}
+function drawAfghanLobedMedallion(g,W,H,cx,cy,r,P,rnd){
+  const M=P.medal, R=rnd||Math.random, rx=r*1.05, ry=r*1.05, amp=0.20, lobes=8, ph=R()*6.28;
+  const ext=Math.ceil(r*(1+amp))+2;
+  for(let dy=-ext;dy<=ext;dy++) for(let dx=-ext;dx<=ext;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny), ang=Math.atan2(ny,nx);
+    const edge=1+amp*Math.cos(lobes*ang+ph);
+    if(rr>edge) continue;
+    let v=M.bg;
+    if(rr>edge-0.09) v=P.o; else if(rr>edge-0.18) v=M.ring;
+    if(Math.abs(Math.sin(4*ang))*rr<0.05 && rr>0.25) v=M.lite;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  stampF(g,W,H,cx,cy,STENCILS.afghanLobedBlack,[P.o,M.ring,M.lite,M.core],P.leaf,0);
 }
 function drawMedallionStep(g,W,H,cx,cy,r,P,rnd){
   const M=P.medal;
@@ -393,6 +651,43 @@ function drawMedallionStep(g,W,H,cx,cy,r,P,rnd){
   stampF(g,W,H,cx+Math.floor(r2*0.6),cy,STENCILS.bud3,[P.o,M.core,M.lite,M.lite],M.lite,0);
   // vertical pendants
   fillDiamond(g,W,H,cx,cy-r-3,2,M.bg); ringDiamond(g,W,H,cx,cy-r-3,2,M.ring); set4(g,W,H,cx,cy-r-3,M.core);
+}
+// Soviet wall-carpet classic: red field, ivory lobed centre, dark arabesque tracery.
+function drawMedallionSovietClassic(g,W,H,cx,cy,r,P,rnd,opts){
+  const M=P.medal, R=rnd||Math.random, out=P.o;
+  const rx=Math.max(5,r*1.05), ry=Math.max(5,r*0.92);
+  const ph=R()*6.28, lobes=12, amp=0.12;
+  const ex=Math.ceil(rx*(1+amp))+2, ey=Math.ceil(ry*(1+amp))+2;
+  for(let dy=-ey;dy<=ey;dy++) for(let dx=-ex;dx<=ex;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny), ang=Math.atan2(ny,nx);
+    const edge=1+amp*Math.cos(lobes*ang+ph);
+    if(rr>edge) continue;
+    const t=rr/edge;
+    let v=M.bg;
+    if(t>0.91) v=out;
+    else if(t>0.82) v=M.ring;
+    else if(t>0.73) v=M.bg;
+    else if(t>0.58&&t<0.65) v=M.core;
+    else if(t>0.53&&t<0.58) v=out;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  for(let a=0;a<Math.PI*2;a+=Math.PI/4){
+    const px=Math.round(cx+Math.cos(a)*rx*0.56), py=Math.round(cy+Math.sin(a)*ry*0.56);
+    const th=(Math.round(a/(Math.PI/4))&1)?[out,M.core,M.bg,M.ring]:[out,M.ring,M.bg,M.core];
+    stampF(g,W,H,px,py,STENCILS.palmette7,th,P.leaf,0);
+  }
+  stampF(g,W,H,cx,cy,STENCILS.shahAbbasi,[out,M.ring,M.bg,M.core],P.leaf,0);
+  const d=Math.max(3,Math.round(r*0.42));
+  fillDiamond(g,W,H,cx,cy-d,2,M.lite); ringDiamond(g,W,H,cx,cy-d,2,out); set4(g,W,H,cx,cy-d,M.core);
+  fillDiamond(g,W,H,cx+d,cy,2,M.lite); ringDiamond(g,W,H,cx+d,cy,2,out); set4(g,W,H,cx+d,cy,M.core);
+  const pr=Math.max(2,Math.round(r*0.16));
+  fillDiamond(g,W,H,cx,cy,pr,M.core);
+  ringDiamond(g,W,H,cx,cy,pr,out);
+  stampF(g,W,H,cx,cy,STENCILS.rosette7,[out,M.lite,M.bg,M.core],P.leaf,0);
+  const finY=Math.round(ry*1.05);
+  fillDiamond(g,W,H,cx,cy-finY,Math.max(2,Math.round(r*0.16)),M.bg);
+  ringDiamond(g,W,H,cx,cy-finY,Math.max(2,Math.round(r*0.16)),out);
+  stampF(g,W,H,cx,cy-finY,STENCILS.rosette5b,[out,M.lite,M.bg,M.core],P.leaf,0);
 }
 // curvilinear foliated medallion (city Persian): lobed elongated ogee + pointed finials
 function drawMedallionCurv(g,W,H,cx,cy,r,P,rnd,opts){
@@ -465,6 +760,79 @@ function starPendant(g,W,H,cx,topY,len,P){
   for(let k=0;k<len;k++) set4(g,W,H,cx, topY-k, cream);                 // stem
   stampF(g,W,H,cx, topY-Math.round(len*0.45), STENCILS.palmette5,[out,accent,cream,core],cream,0);
   stampF(g,W,H,cx, topY-len, STENCILS.star5,[out,cream,cream,core],cream,0);   // finial tip
+}
+// Ardabil-type: golden sunburst disc, ring of 16 radiating pendant-cartouches, two hanging mosque lamps
+function drawMedallionArdabil(g,W,H,cx,cy,r,P,rnd,opts){
+  const M=P.medal, out=P.o, R=rnd||Math.random;
+  const N=16, amp=0.05, ph=R()*6.28, rx=r, ry=r;
+  const dk=darkestIdx(P.colors);
+  const ext=Math.ceil(r*1.05)+1;
+  for(let dy=-ext;dy<=ext;dy++) for(let dx=-ext;dx<=ext;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny), ang=Math.atan2(ny,nx);
+    const R0=1+amp*Math.cos(N*ang+ph);
+    if(rr>R0) continue;
+    let v=M.bg;                                   // gold disc
+    if(rr>R0-0.06) v=out; else if(rr>R0-0.12) v=M.ring;
+    else if(rr>0.66&&rr<0.74) v=M.core;           // inner red ring
+    else if(rr>0.60&&rr<0.66) v=M.ring;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  // ring of small pointed cartouches just outside the disc, alternating red / indigo
+  const Rc=Math.round(r*1.16), pr=Math.max(2,Math.round(r*0.16));
+  for(let k=0;k<N;k++){
+    const a=ph+k*2*Math.PI/N, px=Math.round(cx+Math.cos(a)*Rc), py=Math.round(cy+Math.sin(a)*Rc);
+    drawMiniDiamond(g,W,H,px,py,pr,[out,(k&1)?M.core:dk,M.lite]);
+  }
+  // central rosette
+  stampF(g,W,H,cx,cy,STENCILS.daisy7,[out,M.core,M.ring,M.lite],M.ring,0);
+  // hanging mosque lamps on the long axis (set4 mirrors to top & bottom)
+  stampF(g,W,H,cx,cy-Math.round(r*1.42),STENCILS.mosqueLamp,[out,M.core,M.ring,M.lite],M.ring,0);
+}
+// Salting-type: 16-lobe cusped scalloped rosette medallion
+function drawMedallionLobed(g,W,H,cx,cy,r,P,rnd,opts){
+  const M=P.medal, out=P.o, R=rnd||Math.random;
+  const bg=(opts&&opts.dark)?darkestIdx(P.colors):M.bg;
+  const N=16, amp=0.13, ph=R()*6.28, rx=r, ry=r*1.05;
+  const ext=Math.ceil(Math.max(rx,ry)*(1+amp))+1;
+  for(let dy=-ext;dy<=ext;dy++) for(let dx=-ext;dx<=ext;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny), ang=Math.atan2(ny,nx);
+    const R0=1+amp*Math.cos(N*ang+ph);
+    if(rr>R0) continue;
+    let v=bg;
+    if(rr>R0-0.06) v=out; else if(rr>R0-0.13) v=M.ring;
+    else if(rr>0.66&&rr<0.74) v=M.lite;           // inner gold ring
+    else if(rr>0.40&&rr<0.46) v=M.ring;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  stampF(g,W,H,cx,cy,STENCILS.rosette7,[out,M.core,M.lite,M.ring],M.lite,0);
+  fillDiamond(g,W,H,cx,cy-r-3,2,bg); ringDiamond(g,W,H,cx,cy-r-3,2,M.ring); set4(g,W,H,cx,cy-r-3,M.core);
+}
+// Rothschild-type: ivory pointed-oval (mandorla) with quatrefoil core + pointed finials
+function drawMedallionMandorla(g,W,H,cx,cy,r,P,rnd,opts){
+  const M=P.medal, out=P.o;
+  const bg=(opts&&opts.dark)?darkestIdx(P.colors):M.bg;
+  const rx=r*0.74, ry=r*1.28;
+  const ex=Math.ceil(rx)+1, ey=Math.ceil(ry)+2;
+  for(let dy=-ey;dy<=ey;dy++) for(let dx=-ex;dx<=ex;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny);
+    if(rr>1) continue;
+    let v=bg;
+    if(rr>0.92) v=out; else if(rr>0.83) v=M.ring;
+    else if(rr>0.52&&rr<0.60) v=M.lite;           // gold ring
+    else if(rr>0.46&&rr<0.52) v=M.ring;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  // pointed finials top & bottom (set4 mirrors)
+  const fh=Math.max(3,Math.round(ry*0.34)), fw=Math.max(2,Math.round(rx*0.5));
+  const fyc=Math.round(ry)+Math.round(fh*0.5);
+  for(let dy=-fh;dy<=fh;dy++) for(let dx=-fw;dx<=fw;dx++){
+    const e=Math.abs(dx)/fw+Math.abs(dy)/fh; if(e>1) continue;
+    let v=bg; if(e>0.8) v=out; else if(e>0.5) v=M.lite; else v=M.ring;
+    set4(g,W,H,cx+dx,cy-fyc+dy,v);
+  }
+  stampF(g,W,H,cx,cy,STENCILS.rosette7,[out,M.core,M.lite,M.ring],M.lite,0);
+  stampF(g,W,H,cx,cy-Math.round(ry*0.42),STENCILS.bud3,[out,M.core,M.lite,M.lite],M.lite,0);
+  stampF(g,W,H,cx,cy+Math.round(ry*0.42),STENCILS.bud3,[out,M.core,M.lite,M.lite],M.lite,0);
 }
 // curvilinear cloud-band spandrel: polar boundary with cusped lobes + arabesque tendrils
 function drawSpandrels(g,W,H,fs,P,rnd){
@@ -586,6 +954,24 @@ function drawGulErsari(g,W,H,cx,cy,r,P){
   const hx=Math.round(ax*0.82), hy=Math.round(ay*0.82);          // gülli marks on the 4 sides
   [[0,hy],[0,-hy],[hx,0],[-hx,0]].forEach(([ox,oy])=>put(cx+ox,cy+oy,red));
 }
+function drawGulAfghanRound(g,W,H,cx,cy,r,P){
+  const put=(x,y,v)=>{ if(x>=0&&y>=0&&x<W&&y<H) g[y][x]=v; };
+  const ivory=P.gulBoss, dark=P.gulGround, red=P.gulSecondary, out=P.o;
+  const ax=r, ay=Math.max(2,Math.round(r*0.96));
+  for(let dy=-ay;dy<=ay;dy++) for(let dx=-ax;dx<=ax;dx++){
+    const nx=dx/ax, ny=dy/ay, rr=Math.hypot(nx,ny);
+    if(rr>1) continue;
+    let v=dark;
+    if(rr>0.86) v=out; else if(rr>0.72) v=ivory;
+    if(Math.abs(dx)<2 || Math.abs(dy)<2) v=out;
+    if(rr<0.34) v=red;
+    put(cx+dx,cy+dy,v);
+  }
+  const q=Math.max(2,Math.round(r*0.48));
+  [[q,q],[-q,q],[q,-q],[-q,-q]].forEach(([ox,oy])=>{
+    put(cx+ox,cy+oy,ivory); put(cx+ox+(ox>0?1:-1),cy+oy,out); put(cx+ox,cy+oy+(oy>0?1:-1),red);
+  });
+}
 function drawMiniDiamond(g,W,H,cx,cy,r,cols){
   const put=(x,y,v)=>{ if(x>=0&&y>=0&&x<W&&y<H) g[y][x]=v; };
   for(let d=r;d>=0;d--){ const v=cols[(r-d)%cols.length]; for(let i=-d;i<=d;i++){ const j=d-Math.abs(i); put(cx+i,cy+j,v); put(cx+i,cy-j,v);} }
@@ -596,11 +982,44 @@ function layoutGul(g,W,H,fs,P,rnd,density){
   const ncol=Math.max(2,Math.round(innerW/cell)), nrow=Math.max(2,Math.round(innerH/cell));
   const cw=innerW/ncol, ch=innerH/nrow;
   const r=Math.max(4,Math.floor(Math.min(cw,ch)*0.44)), rMin=Math.max(2,Math.floor(Math.min(cw,ch)*0.18));
-  const drawG=P.gulType==="dyrnak"? drawGulDyrnak : P.gulType==="ersari"? drawGulErsari : drawGulTekke;
+  const drawG=P.gulType==="afghanRound"? drawGulAfghanRound : P.gulType==="dyrnak"? drawGulDyrnak : P.gulType==="ersari"? drawGulErsari : drawGulTekke;
   for(let row=0;row<nrow;row++) for(let col=0;col<ncol;col++)
     drawG(g,W,H,Math.round(fs+cw*(col+0.5)),Math.round(fs+ch*(row+0.5)),r,P);
   for(let row=0;row<nrow-1;row++) for(let col=0;col<ncol-1;col++)
     drawMiniDiamond(g,W,H,Math.round(fs+cw*(col+1)),Math.round(fs+ch*(row+1)),rMin,[P.gulSecondary,P.gulBoss,P.o]);
+}
+function fillRect(g,W,H,x0,y0,x1,y1,v){
+  for(let y=Math.max(0,y0);y<=Math.min(H-1,y1);y++) for(let x=Math.max(0,x0);x<=Math.min(W-1,x1);x++) g[y][x]=v;
+}
+function rectFrame(g,W,H,x0,y0,x1,y1,P){
+  for(let k=0;k<3;k++){
+    const v=k===0?P.o:k===1?P.border.fg:P.border.lite;
+    for(let x=x0+k;x<=x1-k;x++){ put1(g,W,H,x,y0+k,v); put1(g,W,H,x,y1-k,v); }
+    for(let y=y0+k;y<=y1-k;y++){ put1(g,W,H,x0+k,y,v); put1(g,W,H,x1-k,y,v); }
+  }
+}
+function layoutCompartment(g,W,H,fs,P,rnd,density){
+  layoutAllover(g,W,H,fs,P,rnd,Math.max(6,density),true);
+  const innerW=W-2*fs, innerH=H-2*fs, gap=Math.max(5,Math.round(innerH*0.07));
+  const panelW=Math.round(innerW*0.54), panelH=Math.round((innerH-gap)*0.38);
+  const x0=Math.round((W-panelW)/2), x1=x0+panelW;
+  const yTop=fs+Math.round(innerH*0.08), yBot=H-fs-Math.round(innerH*0.08)-panelH;
+  [yTop,yBot].forEach(y0=>{
+    const y1=y0+panelH;
+    fillRect(g,W,H,x0,y0,x1,y1,P.g);
+    rectFrame(g,W,H,x0,y0,x1,y1,P);
+    const stripeCount=5;
+    for(let i=1;i<stripeCount;i++){
+      const sx=Math.round(x0+(panelW*i)/stripeCount);
+      for(let y=y0+4;y<y1-4;y++) put1(g,W,H,sx,y,(i&1)?P.stem:P.border.fg);
+    }
+    const cell=Math.max(7,Math.round(panelH/4));
+    for(let y=y0+cell;y<y1-cell/2;y+=cell){
+      stampF(g,W,H,x0+Math.round(panelW*0.23),Math.round(y),STENCILS.vineleaf5,pick(rnd,P.themes),P.leaf,0);
+      stampF(g,W,H,x0+Math.round(panelW*0.77),Math.round(y),transformStencil(STENCILS.vineleaf5,2,true),pick(rnd,P.themes),P.leaf,0);
+      drawMiniDiamond(g,W,H,x0+Math.round(panelW*0.50),Math.round(y),2,[P.border.lite,P.border.fg,P.o]);
+    }
+  });
 }
 
 // Turkmen border: narrow geometric stripes (no floral band)
@@ -638,6 +1057,8 @@ function generate(W,H,rnd,P,density,bands,fieldMode,animals,centralType,sideMeds
 
   if(P.layout==="gul"){
     layoutGul(g,W,H,fs,P,rnd,density);   // Turkmen guls fill the field by design
+  } else if(P.layout==="compartment"){
+    layoutCompartment(g,W,H,fs,P,rnd,density);
   } else if(P.layout==="rowmedallion"){
     const r=Math.max(4,Math.floor(md*0.22));
     field(true, r*1.2);
@@ -654,16 +1075,18 @@ function generate(W,H,rnd,P,density,bands,fieldMode,animals,centralType,sideMeds
     field(false, r*1.15);
     drawSpandrels(g,W,H,fs,P,rnd);
     // optional dark flanking cartouches left & right (wide rugs only)
-    if(sideMeds && innerW>=innerH*1.25){
+    if(sideMeds && !P.noSideMeds && innerW>=innerH*1.25){
       const sr=Math.max(4,Math.round(r*0.5)), sdx=Math.round(innerW*0.31);
       drawMedallion(g,W,H,cx-sdx,cy,sr,P,rnd,{style:"curv",dark:true}); // set4 -> both sides
     }
     // half-medallions centred on the mid-edges, clipped to the field
-    const hr=Math.max(4,Math.round(r*0.6));
-    CLIP={x0:fs,y0:fs,x1:W-1-fs,y1:H-1-fs};
-    drawMedallion(g,W,H,cx,fs,hr,P,rnd);   // top & bottom (set4 mirrors y)
-    drawMedallion(g,W,H,fs,cy,hr,P,rnd);   // left & right (set4 mirrors x)
-    CLIP=null;
+    if(!P.noEdgeMedallions){
+      const hr=Math.max(4,Math.round(r*0.6));
+      CLIP={x0:fs,y0:fs,x1:W-1-fs,y1:H-1-fs};
+      drawMedallion(g,W,H,cx,fs,hr,P,rnd);   // top & bottom (set4 mirrors y)
+      drawMedallion(g,W,H,fs,cy,hr,P,rnd);   // left & right (set4 mirrors x)
+      CLIP=null;
+    }
     // central element — type varies by seed
     const copts=centralType==="starDark"?{style:"star",dark:true}
                :centralType==="starLight"?{style:"star",dark:false}:null;
@@ -698,6 +1121,22 @@ function buildAbrash(H,arnd){
 
 // ===== render =====
 const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+const AFGHAN_KEYS=["afghanElephant","afghanCreamGarden","afghanLobed","afghanTripleDiamond","afghanRedGulGrid","afghanPanelPrayer"];
+function clonePreset(P){ return JSON.parse(JSON.stringify(P)); }
+function buildAfghanHybrid(rnd){
+  const palette=PRESETS[pick(rnd,AFGHAN_KEYS)];
+  const layout=PRESETS[pick(rnd,AFGHAN_KEYS)];
+  const border=PRESETS[pick(rnd,AFGHAN_KEYS)];
+  const motif=PRESETS[pick(rnd,AFGHAN_KEYS)];
+  const P=clonePreset(palette);
+  ["layout","medalStyle","gulType","gulScale","fieldMood"].forEach(k=>{ if(layout[k]!=null) P[k]=layout[k]; });
+  ["border","borderStyle"].forEach(k=>{ if(border[k]!=null) P[k]=clonePreset(border[k]); });
+  ["medal","spandrel","themes","stem","leaf","filler","gulGround","gulSecondary","gulBoss","motifPool","fillerPool","borderMotifs"].forEach(k=>{ if(motif[k]!=null) P[k]=clonePreset(motif[k]); });
+  P.name="Афганский гибрид";
+  P.family=`Афганские гибриды · палитра ${palette.name}, поле ${layout.name}, кайма ${border.name}`;
+  P.ref=`mix:${palette.ref}/${layout.ref}/${border.ref}/${motif.ref}`;
+  return P;
+}
 function render(){
   const W=+document.getElementById('res').value;
   const H=Math.round(W/FORMATS[fmt]);
@@ -707,14 +1146,14 @@ function render(){
   // sub-preset, density and "character" are derived from the seed, not manual controls
   const srnd=mulberry32((seed^0x1234abcd)>>>0);
   const keys=CATS[category]||Object.keys(PRESETS);
-  style=keys[Math.floor(srnd()*keys.length)];
-  const P=PRESETS[style];
+  style=category==="Афганские гибриды"?"afghanHybrid":keys[Math.floor(srnd()*keys.length)];
+  const P=category==="Афганские гибриды"?buildAfghanHybrid(srnd):PRESETS[style];
   const density=4+Math.floor(srnd()*5);
-  const fieldMode=srnd()<0.5?"open":"dense";
+  const fieldMode=P.fieldMood || (srnd()<0.5?"open":"dense");
   const animals=srnd()<0.6;
   const abrash=srnd()<0.3?0:0.18+srnd()*0.4;
   const ct=srnd();
-  const centralType=ct<0.45?"native":(ct<0.75?"starDark":"starLight");
+  const centralType=P.centralType || (ct<0.45?"native":(ct<0.75?"starDark":"starLight"));
   const sideMeds=srnd()<0.5;
   const grid=generate(W,H,mulberry32(seed),P,density,bands,fieldMode,animals,centralType,sideMeds);
 
@@ -765,16 +1204,11 @@ function render(){
       fill(ivD, x, frC+H);
     }
   }
-  document.getElementById('seedTxt').textContent=seed.toString(36);
-  document.getElementById('famNote').textContent=P.name+" · "+P.family.split('·').slice(1).join('·').trim();
-  drawPalette(P);
 }
-function drawPalette(P){ const el=document.getElementById('pal'); el.innerHTML='';
-  P.colors.forEach(c=>{ const d=document.createElement('div'); d.className='sw'; d.style.background=c; el.appendChild(d); }); }
 
 // ===== UI =====
 // group presets by category (country); subtype is chosen at random from the seed
-const CAT_ORDER=["Персидские","Кавказские","Туркменские","Советские"];
+const CAT_ORDER=["Персидские","Кавказские","Туркменские","Афганские","Советские"];
 const CATS={}; Object.entries(PRESETS).forEach(([k,v])=>{ const c=v.family.split('·')[0].trim(); (CATS[c]=CATS[c]||[]).push(k); });
 const stylesEl=document.getElementById('styles');
 const catGrid=document.createElement('div'); catGrid.className='styles'; stylesEl.appendChild(catGrid);
