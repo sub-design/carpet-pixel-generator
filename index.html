@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пиксельные ковры — процедурный генератор</title>
+<style>
+  :root { --bg:#15110d; --panel:#211a13; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background:var(--bg); color:var(--text);
+    font:14px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; display:flex; min-height:100%; }
+  aside { width:320px; flex:0 0 320px; background:var(--panel); border-right:1px solid var(--line); padding:22px 20px; overflow-y:auto; }
+  h1 { font-size:15px; letter-spacing:.5px; margin:0 0 2px; }
+  .sub { color:var(--muted); font-size:11.5px; margin-bottom:22px; }
+  .field { margin-bottom:18px; }
+  .fam { font-size:10px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin:12px 0 6px; }
+  .fam:first-child { margin-top:0; }
+  label.cap { display:flex; justify-content:space-between; font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:8px; }
+  label.cap b { color:var(--accent); font-weight:600; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  .styles { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .chip { border:1px solid var(--line); background:#1a140e; color:var(--text); padding:8px 4px; border-radius:6px; cursor:pointer; text-align:center; font-size:12px; transition:.12s; }
+  .chip:hover { border-color:var(--accent); }
+  .chip.on { background:var(--accent); color:#1a140e; border-color:var(--accent); font-weight:600; }
+  .fmt { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .row { display:flex; gap:8px; }
+  button.act { flex:1; border:1px solid var(--line); background:#1a140e; color:var(--text); padding:11px; border-radius:7px; cursor:pointer; font-family:inherit; font-size:12.5px; transition:.12s; }
+  button.act:hover { border-color:var(--accent); color:var(--accent); }
+  button.primary { background:var(--accent); color:#1a140e; border-color:var(--accent); font-weight:600; }
+  button.primary:hover { color:#1a140e; filter:brightness(1.08); }
+  .seedline { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11.5px; }
+  .seedline code { color:var(--text); }
+  main { flex:1; display:flex; align-items:center; justify-content:center; padding:32px; min-width:0; }
+  .frame { padding:16px; background:#0d0a07; border-radius:4px; box-shadow:0 24px 60px rgba(0,0,0,.5), inset 0 0 0 1px #2a2018; }
+  canvas { display:block; image-rendering:pixelated; max-width:min(80vw,1040px); max-height:82vh; width:auto; height:auto; background:#000; }
+  .palrow { display:flex; gap:3px; margin-top:10px; flex-wrap:wrap; }
+  .sw { width:18px; height:18px; border-radius:3px; border:1px solid rgba(255,255,255,.12); }
+  .note { color:var(--muted); font-size:11px; margin-top:6px; }
+</style>
+</head>
+<body>
+<aside>
+  <h1>ПИКСЕЛЬНЫЕ КОВРЫ</h1>
+  <div class="sub">процедурный · анатомия · природные красители</div>
+
+  <div class="field">
+    <div id="styles"></div>
+    <div class="note" id="famNote"></div>
+  </div>
+
+  <div class="field">
+    <label class="cap">Формат</label>
+    <div class="fmt" id="fmt"></div>
+  </div>
+
+  <div class="field">
+    <label class="cap">Детализация <b id="resVal">140</b></label>
+    <input type="range" id="res" min="72" max="216" step="4" value="140">
+  </div>
+
+  <div class="field">
+    <label class="cap">Сторожевые каймы <b id="borderVal">2</b></label>
+    <input type="range" id="border" min="0" max="3" step="1" value="2">
+  </div>
+
+  <div class="field">
+    <label class="cap">Потёртость <b id="wearVal">0.25</b></label>
+    <input type="range" id="wear" min="0" max="1" step="0.05" value="0.25">
+  </div>
+
+  <div class="field">
+    <label class="cap">Бахрома <b id="fringeVal">0.6</b></label>
+    <input type="range" id="fringe" min="0" max="1" step="0.05" value="0.6">
+  </div>
+
+  <div class="field">
+    <div class="row">
+      <button class="act primary" id="gen">↻ Новый ковёр</button>
+      <button class="act" id="save">↓ PNG</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="seedline">сид: <code id="seedTxt">—</code></div>
+    <div class="palrow" id="pal"></div>
+  </div>
+</aside>
+
+<main>
+  <div class="frame"><canvas id="c" width="800" height="533"></canvas></div>
+</main>
+
+<script>
+// ===== seeded RNG =====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+// ===== presets (palettes from natural dyes, ~11 colours with highlights) =====
+const PRESETS = {
+  kashan: { name:"Кашан", family:"Персидские · сплошной цветочный", layout:"medallion", medalStyle:"curv",
+    colors:["#1c0f0a","#9e1f24","#16365e","#3f72b0","#8fb9e0","#caa23c","#e8cf8f","#2f6b4a","#ece0c6","#c8607a","#7a1518"],
+    o:0, g:1, stem:10, leaf:7, filler:8,
+    themes:[[0,3,4,8],[0,5,6,8],[0,9,8,5],[0,2,3,8]],
+    medal:{bg:2,ring:8,lite:5,core:9}, spandrel:{bg:2,fg:8,lite:5},
+    border:{bg:2,fg:8,lite:5,gA:1,gB:8} },
+
+  tabriz: { name:"Тебриз", family:"Персидские · кремовый медальон", layout:"medallion", medalStyle:"curv",
+    colors:["#22150f","#a01f22","#1d3d5e","#5e8cc0","#aecbe6","#cf9a37","#ecd79a","#3d6b4f","#efe6cf","#bd5f73","#7a1518"],
+    o:0, g:1, stem:10, leaf:7, filler:8,
+    themes:[[0,3,4,8],[0,5,6,8],[0,9,8,5],[0,2,4,8]],
+    medal:{bg:8,ring:2,lite:9,core:5}, spandrel:{bg:8,fg:2,lite:9},
+    border:{bg:2,fg:8,lite:5,gA:1,gB:8} },
+
+  kazak: { name:"Казах", family:"Кавказские · ряд медальонов", layout:"rowmedallion",
+    colors:["#120d0a","#b41f1f","#14406e","#4f86c0","#d99a2a","#1f6b4a","#e8ddc4","#c85a3a","#7a1414","#101010","#5fae8a"],
+    o:0, g:1, stem:8, leaf:5, filler:6,
+    themes:[[0,2,3,6],[0,4,6,7],[0,5,10,6],[0,7,6,4]],
+    medal:{bg:9,ring:6,lite:5,core:7}, spandrel:{bg:9,fg:6,lite:4},
+    border:{bg:9,fg:6,lite:4,gA:1,gB:6} },
+
+  shirvan: { name:"Ширван", family:"Кавказские · индиго, мелкий узор", layout:"allover",
+    colors:["#0d0b0a","#173049","#e8dcc0","#a83c28","#caa23c","#4f7a4a","#bb6a52","#6f9fc0","#0c2030","#d9b070","#7a1518"],
+    o:0, g:1, stem:8, leaf:5, filler:2,
+    themes:[[0,3,2,4],[0,7,2,3],[0,4,9,2],[0,6,2,5]],
+    medal:{bg:3,ring:2,lite:4,core:6}, spandrel:{bg:3,fg:2,lite:4},
+    border:{bg:3,fg:2,lite:4,gA:1,gB:2} },
+
+  tekke: { name:"Текинский", family:"Туркменские · текинские гёли", layout:"gul", gulType:"tekke",
+    colors:["#160f0b","#7e2a1c","#13243a","#d8c39a","#a9402a","#2c1c12","#caa46a","#9a3422","#3a566f","#b8895a","#1d1008"],
+    o:0, g:1, stem:5, leaf:4, filler:6, gulGround:2, gulSecondary:4, gulBoss:3,
+    themes:[[0,4,6,3]],
+    medal:{bg:2,ring:3,lite:6,core:4}, spandrel:{bg:2,fg:3,lite:6},
+    border:{bg:2,fg:3,lite:6,gA:4,gB:1} },
+
+  yomut: { name:"Йомуд", family:"Туркменские · синий, дырнак-гёли", layout:"gul", gulType:"dyrnak", gulScale:0.85,
+    colors:["#0e0d10","#5b7088","#7a1f18","#e6dcc4","#b5482a","#2a3340","#caa050","#34506a","#8a2a1e","#d98a3a","#161b22"],
+    o:0, g:1, stem:5, leaf:4, filler:6, gulGround:2, gulSecondary:4, gulBoss:3,
+    themes:[[0,4,6,3]],
+    medal:{bg:5,ring:3,lite:6,core:4}, spandrel:{bg:5,fg:3,lite:6},
+    border:{bg:5,fg:3,lite:6,gA:2,gB:1} },
+
+  ersari: { name:"Эрсари", family:"Туркменские · оранжевый, гюлли-гёли", layout:"gul", gulType:"ersari", gulScale:1.55,
+    colors:["#1a0f08","#b9521f","#2a1810","#e7cf9a","#8a1f16","#3a2a14","#caa44e","#6a3a18","#13243a","#d98a3a","#120a06"],
+    o:0, g:1, stem:5, leaf:4, filler:6, gulGround:8, gulSecondary:4, gulBoss:3,
+    themes:[[0,4,6,3]],
+    medal:{bg:8,ring:3,lite:6,core:4}, spandrel:{bg:8,fg:3,lite:6},
+    border:{bg:8,fg:3,lite:6,gA:4,gB:1} },
+
+  sovbordo: { name:"Советский бордо", family:"Советские · звёздчатый медальон", layout:"medallion", medalStyle:"star",
+    colors:["#1a1310","#c61f3c","#16203e","#efe6d0","#7c7a39","#d94a6a","#c1955a","#8a1528","#b0b06a","#e8b96a","#2a2410"],
+    o:0, g:1, stem:7, leaf:4, filler:3,
+    themes:[[0,5,3,4],[0,4,8,5],[0,2,3,5],[0,1,9,3]],
+    medal:{bg:2,ring:3,lite:4,core:5}, spandrel:{bg:2,fg:5,lite:3},
+    border:{bg:2,fg:5,lite:3,gA:1,gB:3} },
+
+  sovbezh: { name:"Советский беж", family:"Советские · палас, сплошной", layout:"allover",
+    colors:["#241a10","#cdb486","#6e1f24","#34503a","#b07a32","#ece2cc","#8a3a24","#7a5a2a","#9c7a45","#557a55","#3a2a16"],
+    o:0, g:1, stem:7, leaf:3, filler:5,
+    themes:[[0,2,5,4],[0,3,5,4],[0,6,5,2],[0,4,8,5]],
+    medal:{bg:2,ring:5,lite:4,core:6}, spandrel:{bg:2,fg:5,lite:4},
+    border:{bg:2,fg:5,lite:4,gA:4,gB:5} },
+};
+
+const FORMATS = { "3:2":3/2, "4:3":4/3, "16:9":16/9, "1:1":1 };
+let category="Персидские", style="kashan", fmt="3:2";
+let seed=(Math.random()*1e9)|0;
+
+// ===== shaded stencils — o outline · m mid · l light · c center · g leaf =====
+const STENCILS = {
+  rosette7:["..ooo..",".omcmo.","omlclmo","oclclco","omlclmo",".omcmo.","..ooo.."],
+  flower5:[".ooo.","omcmo","olclo","omcmo",".ooo."],
+  star7:["...o...",".o.l.o.","..lcl..","olcmclo","..lcl..",".o.l.o.","...o..."],
+  leaf3:[".g.","glg",".g."],
+  bud3:[".m.","lcl",".o."],
+  palmette5:["..g..",".glg.","gcmcg",".glg.","..o.."],
+  star5:["..o..",".lcl.","ocmco",".lcl.","..o.."],
+  daisy7:["..ooo..",".olclo.","oclclco","olcmclo","oclclco",".olclo.","..ooo.."],
+  carnation7:["o.o.o.o",".lclcl.","omlclmo","oclclco",".omcmo.","..omo..","...o..."],
+  rosette5b:[".o.o.","olclo",".cmc.","olclo",".o.o."],
+  tulip5:["o.l.o","olclo","omcmo",".omo.","..g.."],
+  palmette7:["...o...","..glg..",".gmcmg.","gclclcg",".gmcmg.","..glg..","...o..."],
+  vineleaf5:["..g..",".gg..","gclg.",".gcg.","..og."],
+  cross3:[".m.","mcm",".m."],
+  bird5:["o...l",".ommc","ommmo",".omo.",".o.o."],
+  bird7:["g....l.",".g.omoo","gg.mmmc",".ggmmmo","..ommo.","...o.o."],
+  quad7:["....l.l","....omo","ommmmmo","ommmmlo",".o.o.o."],
+};
+const ANIMALS=["bird5","bird7","quad7"];
+const FLOWERS=["rosette7","flower5","star7","daisy7","carnation7","rosette5b","tulip5"];
+const FILLERS=["bud3","leaf3","palmette5","palmette7","vineleaf5","cross3"];
+// rotate (0-3 quarter-turns) / flip a stencil for variety
+function transformStencil(s,rot,flip){
+  let gg=s.map(r=>r.split(''));
+  if(flip) gg=gg.map(r=>r.slice().reverse());
+  for(let k=0;k<rot;k++){
+    const h=gg.length,w=gg[0].length, ng=Array.from({length:w},()=>new Array(h));
+    for(let r=0;r<h;r++) for(let c=0;c<w;c++) ng[c][h-1-r]=gg[r][c];
+    gg=ng;
+  }
+  return gg.map(r=>r.join(''));
+}
+
+// ===== grid helpers (rectangular, mirror on both axes) =====
+const clampv=(v,a,b)=>v<a?a:v>b?b:v;
+function pick(rnd,a){ return a[(rnd()*a.length)|0]; }
+function makeGrid(W,H,fill){ return Array.from({length:H},()=>new Array(W).fill(fill)); }
+let CLIP=null;   // optional {x0,y0,x1,y1} rectangle to clip writes (for edge half-medallions)
+function put1(g,W,H,x,y,v){
+  if(x<0||y<0||x>=W||y>=H) return;
+  if(CLIP && (x<CLIP.x0||x>CLIP.x1||y<CLIP.y0||y>CLIP.y1)) return;
+  g[y][x]=v;
+}
+function set4(g,W,H,x,y,v){
+  put1(g,W,H,x,y,v); put1(g,W,H,W-1-x,y,v); put1(g,W,H,x,H-1-y,v); put1(g,W,H,W-1-x,H-1-y,v);
+}
+function setRingRect(g,W,H,e,v){
+  const ax=e,bx=W-1-e, ay=e,by=H-1-e; if(ax>bx||ay>by) return;
+  for(let x=ax;x<=bx;x++){ g[ay][x]=v; g[by][x]=v; }
+  for(let y=ay;y<=by;y++){ g[y][ax]=v; g[y][bx]=v; }
+}
+function guardRect(g,W,H,e,cA,cB){
+  const ax=e,bx=W-1-e, ay=e,by=H-1-e; if(ax>bx||ay>by) return;
+  const s=(x,y)=>{ g[y][x]=((x+y)&1)?cA:cB; };
+  for(let x=ax;x<=bx;x++){ s(x,ay); s(x,by); }
+  for(let y=ay;y<=by;y++){ s(ax,y); s(bx,y); }
+}
+
+// stamp a shaded stencil (mirrored)
+function stampF(g,W,H,cx,cy,sten,theme,leaf,fs){
+  const map={o:theme[0],m:theme[1],l:theme[2],c:theme[3],g:leaf};
+  const h=sten.length,w=sten[0].length, lo=fs,hiX=W-1-fs,hiY=H-1-fs;
+  const y0=cy-(h>>1),x0=cx-(w>>1);
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
+    const ch=sten[r][c]; if(ch==='.') continue;
+    const x=x0+c,y=y0+r;
+    if(x<=lo||x>=hiX||y<=lo||y>=hiY) continue;
+    set4(g,W,H,x,y,map[ch]);
+  }
+}
+function vine(g,W,H,x0,y0,x1,y1,v,fs){
+  const dx=Math.sign(x1-x0),dy=Math.sign(y1-y0),n=Math.abs(x1-x0);
+  let x=x0,y=y0;
+  for(let i=0;i<=n;i++){ if(x>fs&&x<W-1-fs&&y>fs&&y<H-1-fs) set4(g,W,H,x,y,v); x+=dx; y+=dy; }
+}
+
+// ===== borders =====
+function lightestIdx(cols){ let bi=0,bv=-1; cols.forEach((h,i)=>{ const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); const l=r*0.3+g*0.59+b*0.11; if(l>bv){bv=l;bi=i;} }); return bi; }
+function darkestIdx(cols){ let bi=0,bv=1e9; cols.forEach((h,i)=>{ const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); const l=r*0.3+g*0.59+b*0.11; if(l<bv){bv=l;bi=i;} }); return bi; }
+function bandFill(g,W,H,e,w,v){ for(let k=0;k<w;k++) setRingRect(g,W,H,e+k,v); }
+
+// zigzag / running-dog band
+function bandSawtooth(g,W,H,e,w,bg,fg){
+  bandFill(g,W,H,e,w,bg);
+  const w1=Math.max(1,w-1), P2=2*w1;
+  const tri=t=>{ const m=((t%P2)+P2)%P2; return m<=w1? m : P2-m; };
+  for(let x=e;x<=W-1-e;x++) set4(g,W,H,x, e+tri(x-e), fg);
+  for(let y=e;y<=H-1-e;y++) set4(g,W,H, e+tri(y-e), y, fg);
+}
+// narrow dark band with little florets
+function bandDarkFloral(g,W,H,e,w,P){
+  const B=P.border; bandFill(g,W,H,e,w,B.bg);
+  const mid=e+(w>>1), per=Math.max(3,w+1);
+  const flo=(cx,cy)=>{ set4(g,W,H,cx,cy,B.lite); set4(g,W,H,cx-1,cy,B.gA); set4(g,W,H,cx+1,cy,B.gA); set4(g,W,H,cx,cy-1,B.fg); };
+  for(let x=e+2;x<=W/2;x+=per) flo(x,mid);
+  for(let y=e+2;y<=H/2;y+=per) flo(mid,y);
+}
+// main wide light band: alternating motifs on a vine
+function bandMain(g,W,H,e,w,P,field){
+  bandFill(g,W,H,e,w,field);
+  const mid=e+(w>>1), per=Math.max(4,w);
+  for(let x=e+1;x<W-1-e;x++) set4(g,W,H,x,mid,P.stem);
+  for(let y=e+1;y<H-1-e;y++) set4(g,W,H,mid,y,P.stem);
+  const thA=P.themes[0], thB=P.themes[Math.min(2,P.themes.length-1)];
+  let i=0;
+  for(let x=e+per;x<=W/2;x+=per,i++) stampF(g,W,H,x,mid,(i&1)?STENCILS.star5:STENCILS.flower5,(i&1)?thB:thA,P.leaf,0);
+  i=0;
+  for(let y=e+per;y<=H/2;y+=per,i++) stampF(g,W,H,mid,y,(i&1)?STENCILS.star5:STENCILS.flower5,(i&1)?thB:thA,P.leaf,0);
+  stampF(g,W,H,mid,mid,STENCILS.flower5,thA,P.leaf,0);
+  for(let x=e+per+(per>>1);x<=W/2;x+=per) stampF(g,W,H,x,mid,STENCILS.bud3,thB,P.leaf,0);
+  for(let y=e+per+(per>>1);y<=H/2;y+=per) stampF(g,W,H,mid,y,STENCILS.bud3,thB,P.leaf,0);
+}
+
+function drawBorders(g,W,H,P,bands){
+  const o=P.o, B=P.border, u=Math.min(W,H), field=lightestIdx(P.colors); let e=0;
+  const line=v=>{ setRingRect(g,W,H,e,v); e++; };
+  const candy=()=>{ guardRect(g,W,H,e,B.gA,B.gB); e++; };
+  line(o); candy();
+  if(bands>=2){ const wd=clampv(Math.round(u/40),2,4); bandDarkFloral(g,W,H,e,wd,P); e+=wd; candy(); }
+  line(o);
+  const wm=clampv(Math.round(u/15),5,11); bandMain(g,W,H,e,wm,P,field); e+=wm;
+  line(o); candy();
+  if(bands>=1){ const ws=clampv(Math.round(u/44),2,4); bandSawtooth(g,W,H,e,ws,B.bg,B.gA); e+=ws; line(o); }
+  return e;
+}
+
+// ===== dense allover floral field =====
+function layoutAllover(g,W,H,fs,P,rnd,density,bold){
+  const hW=W/2,hH=H/2;
+  const S=clampv(Math.round(Math.min(W,H)/(8+density)), bold?9:5, bold?16:11);
+  const mot=pool=>transformStencil(STENCILS[pick(rnd,pool)], rnd()*4|0, rnd()<0.5);
+  // main lattice: vines + flowers (each randomly rotated/flipped)
+  for(let y=fs+S; y<=hH; y+=S){
+    for(let x=fs+S; x<=hW; x+=S){
+      vine(g,W,H,x,y,x+S,y+S,P.stem,fs);
+      vine(g,W,H,x,y,x+S,y-S,P.stem,fs);
+      stampF(g,W,H,x,y,mot(FLOWERS),pick(rnd,P.themes),P.leaf,fs);
+    }
+  }
+  // offset lattice: buds/leaves between
+  const o2=Math.floor(S/2);
+  for(let y=fs+o2+S; y<=hH; y+=S){
+    for(let x=fs+o2+S; x<=hW; x+=S){
+      stampF(g,W,H,x,y,mot(FILLERS),pick(rnd,P.themes),P.leaf,fs);
+    }
+  }
+  // fine filler speckle (symmetric)
+  const area=(hW-fs)*(hH-fs), n=Math.floor(area/26);
+  for(let i=0;i<n;i++){
+    const x=fs+1+Math.floor(rnd()*(hW-fs-1));
+    const y=fs+1+Math.floor(rnd()*(hH-fs-1));
+    set4(g,W,H,x,y,P.filler);
+  }
+}
+
+// open field: sparse detached floral sprays, clean ground, halo around the medallion
+function stampSpray(g,W,H,cx,cy,P,rnd,fs){
+  const th=pick(rnd,P.themes);
+  stampF(g,W,H,cx,cy,transformStencil(STENCILS[pick(rnd,FLOWERS)],rnd()*4|0,rnd()<.5),th,P.leaf,fs);
+  stampF(g,W,H,cx,cy+3,STENCILS.leaf3,th,P.leaf,fs);
+  stampF(g,W,H,cx-3,cy+1,transformStencil(STENCILS.leaf3,1,false),th,P.leaf,fs);
+  stampF(g,W,H,cx+3,cy+1,transformStencil(STENCILS.leaf3,1,true),th,P.leaf,fs);
+  if(rnd()<0.5) stampF(g,W,H,cx,cy-4,STENCILS.bud3,pick(rnd,P.themes),P.leaf,fs);
+}
+function layoutOpen(g,W,H,fs,P,rnd,density,haloR){
+  const hW=W/2,hH=H/2,cx=W/2,cy=H/2,u=Math.min(W,H);
+  const S=clampv(Math.round(u/(6+density)),8,20);          // airy but not barren
+  const hx=haloR||0, hy=hx*1.12;                            // halo matches the actual medallion
+  for(let y=fs+Math.round(S*0.7); y<=hH; y+=S){
+    for(let x=fs+Math.round(S*0.7); x<=hW; x+=S){
+      const px=x+Math.round((rnd()*2-1)*S*0.18), py=y+Math.round((rnd()*2-1)*S*0.18);
+      if(hx>0){ const ndx=(px-cx)/hx, ndy=(py-cy)/hy; if(ndx*ndx+ndy*ndy<1.05) continue; }
+      stampSpray(g,W,H,px,py,P,rnd,fs);
+    }
+  }
+}
+// scatter stylised birds/animals in the field (mirrored → confronting pairs)
+function scatterAnimals(g,W,H,fs,P,rnd,haloR){
+  const hW=W/2,hH=H/2,cx=W/2,cy=H/2,u=Math.min(W,H);
+  const mrx=haloR||u*0.33, mry=mrx*1.12;
+  const count=2+Math.floor(rnd()*3);
+  let placed=0,tries=0;
+  while(placed<count && tries<count*14){
+    tries++;
+    const x=fs+5+Math.floor(rnd()*Math.max(1,hW-fs-8));
+    const y=fs+5+Math.floor(rnd()*Math.max(1,hH-fs-8));
+    const ndx=(x-cx)/mrx, ndy=(y-cy)/mry;
+    if(ndx*ndx+ndy*ndy<1.15) continue;          // keep clear of the medallion
+    const st=transformStencil(STENCILS[pick(rnd,ANIMALS)],0,rnd()<0.5);
+    stampF(g,W,H,x,y,st,pick(rnd,P.themes),P.leaf,fs);
+    placed++;
+  }
+}
+
+// ===== medallion + spandrels =====
+function ringDiamond(g,W,H,cx,cy,d,v){ for(let i=0;i<=d;i++){ const j=d-i; set4(g,W,H,cx+i,cy+j,v); set4(g,W,H,cx-i,cy+j,v); } }
+function fillDiamond(g,W,H,cx,cy,r,v){ for(let dy=-r;dy<=r;dy++){ const w=r-Math.abs(dy); for(let dx=-w;dx<=w;dx++) set4(g,W,H,cx+dx,cy+dy,v); } }
+function drawMedallion(g,W,H,cx,cy,r,P,rnd,opts){
+  const style=(opts&&opts.style)||P.medalStyle;
+  if(style==="star") drawMedallionStar(g,W,H,cx,cy,r,P,rnd,opts);
+  else if(style==="curv") drawMedallionCurv(g,W,H,cx,cy,r,P,rnd,opts);
+  else drawMedallionStep(g,W,H,cx,cy,r,P,rnd);
+}
+function drawMedallionStep(g,W,H,cx,cy,r,P,rnd){
+  const M=P.medal;
+  fillDiamond(g,W,H,cx,cy,r,M.bg);
+  ringDiamond(g,W,H,cx,cy,r,P.o);
+  ringDiamond(g,W,H,cx,cy,r-1,M.ring);
+  // toothed edge
+  for(let t=-r+2;t<=r-2;t+=3){ const j=r-Math.abs(t); set4(g,W,H,cx+t,cy+j+1,M.ring); set4(g,W,H,cx+t,cy-j-1,M.ring); }
+  const r2=Math.floor(r*0.6);
+  ringDiamond(g,W,H,cx,cy,r2,M.lite);
+  ringDiamond(g,W,H,cx,cy,r2-1,M.ring);
+  // inner dot lattice for detail
+  for(let dy=-r2+2;dy<=r2-2;dy++){ const w=r2-2-Math.abs(dy); for(let dx=-w;dx<=w;dx++) if(((dx+dy)&1)===0) set4(g,W,H,cx+dx,cy+dy,M.lite); }
+  // central rosette cluster
+  stampF(g,W,H,cx,cy,STENCILS.rosette7,[P.o,M.ring,M.lite,M.core],M.lite,0);
+  stampF(g,W,H,cx,cy-Math.floor(r2*0.6),STENCILS.bud3,[P.o,M.core,M.lite,M.lite],M.lite,0);
+  stampF(g,W,H,cx+Math.floor(r2*0.6),cy,STENCILS.bud3,[P.o,M.core,M.lite,M.lite],M.lite,0);
+  // vertical pendants
+  fillDiamond(g,W,H,cx,cy-r-3,2,M.bg); ringDiamond(g,W,H,cx,cy-r-3,2,M.ring); set4(g,W,H,cx,cy-r-3,M.core);
+}
+// curvilinear foliated medallion (city Persian): lobed elongated ogee + pointed finials
+function drawMedallionCurv(g,W,H,cx,cy,r,P,rnd,opts){
+  const M=P.medal, R=rnd||Math.random;
+  const bg=(opts&&opts.dark)?darkestIdx(P.colors):M.bg;
+  const rx=r*0.82, ry=r*1.34, amp=0.11;
+  const lobes=10+2*Math.floor(R()*3), ph=R()*6.28;
+  const ex=Math.ceil(rx*(1+amp))+1, ey=Math.ceil(ry*(1+amp))+1;
+  for(let dy=-ey;dy<=ey;dy++) for(let dx=-ex;dx<=ex;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny);
+    if(rr>1+amp) continue;
+    const Rb=1+amp*Math.cos(lobes*Math.atan2(ny,nx)+ph);
+    if(rr>Rb) continue;
+    const t=rr/Rb;
+    let v=bg;
+    if(t>0.90) v=P.o;                 // foliated outline
+    else if(t>0.80) v=M.lite;         // cream inner highlight
+    else if(t>0.50&&t<=0.585) v=M.ring;   // concentric ring
+    else if(t>0.46&&t<=0.50) v=M.lite;
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  // pointed pendant finials (one draw mirrors to top & bottom)
+  const fw=Math.max(2,Math.round(rx*0.36)), fh=Math.max(3,Math.round(ry*0.5));
+  const fyc=Math.round(ry*(1+amp))+Math.round(fh*0.5);
+  for(let dy=-fh;dy<=fh;dy++) for(let dx=-fw;dx<=fw;dx++){
+    const e=Math.abs(dx)/fw+Math.abs(dy)/fh; if(e>1) continue;
+    let v=bg; if(e>0.82) v=P.o; else if(e>0.55) v=M.ring; else v=M.lite;
+    set4(g,W,H,cx+dx,cy-fyc+dy,v);
+  }
+  // inner floral cluster
+  stampF(g,W,H,cx,cy,STENCILS.rosette7,[P.o,M.ring,M.lite,M.core],M.lite,0);
+  stampF(g,W,H,cx,cy-Math.round(ry*0.34),STENCILS.bud3,[P.o,M.core,M.lite,M.lite],M.lite,0);
+  stampF(g,W,H,cx,cy+Math.round(ry*0.34),STENCILS.bud3,[P.o,M.core,M.lite,M.lite],M.lite,0);
+  stampF(g,W,H,cx+Math.round(rx*0.5),cy,STENCILS.bud3,[P.o,M.core,M.lite,M.lite],M.lite,0);
+}
+// radial sunburst medallion (Soviet/city Persian): N-point star, concentric cusped rings,
+// lacy cream tracery on the ground colour, spokes, long pendants
+function drawMedallionStar(g,W,H,cx,cy,r,P,rnd,opts){
+  const R=rnd||Math.random, M=P.medal;
+  const N=16, rx=r*1.0, ry=r*1.0, amp=0.17, ph=R()*6.28;
+  const cream=M.ring, accent=M.lite, ground=(opts&&opts.dark)?darkestIdx(P.colors):P.g, out=P.o, core=M.core;
+  const ext=Math.ceil(Math.max(rx,ry)*(1+amp))+1;
+  const tiers=[{f:0.80,n:N},{f:0.60,n:N},{f:0.42,n:8},{f:0.27,n:8}];
+  for(let dy=-ext;dy<=ext;dy++) for(let dx=-ext;dx<=ext;dx++){
+    const nx=dx/rx, ny=dy/ry, rr=Math.hypot(nx,ny), ang=Math.atan2(ny,nx);
+    const R0=1+amp*Math.cos(N*ang+ph);
+    if(rr>R0) continue;
+    let v=ground;                                   // clean ground inside the star
+    if(rr>R0-0.07) v=cream; else if(rr>R0-0.12) v=out;   // rim
+    for(const t of tiers){                          // concentric cusped rings
+      const tr=t.f*(1+amp*0.9*Math.cos(t.n*ang+ph));
+      const d=Math.abs(rr-tr);
+      if(d<0.045) v=cream; else if(d<0.075 && v===ground) v=out;
+    }
+    set4(g,W,H,cx+dx,cy+dy,v);
+  }
+  // sunburst spokes from centre to each point
+  for(let k=0;k<N;k++){
+    const a=ph+k*2*Math.PI/N, Rk=1+amp*Math.cos(N*a+ph);
+    for(let rad=0.20; rad<=Rk-0.03; rad+=0.03)
+      set4(g,W,H, Math.round(cx+Math.cos(a)*rad*rx), Math.round(cy+Math.sin(a)*rad*ry), cream);
+  }
+  // central rosette
+  stampF(g,W,H,cx,cy,STENCILS.daisy7,[out,accent,cream,core],cream,0);
+  // long pendant (mirrored to top & bottom by set4)
+  starPendant(g,W,H,cx, cy-Math.round(ry*(1+amp))-1, Math.round(ry*0.45), P);
+}
+function starPendant(g,W,H,cx,topY,len,P){
+  const M=P.medal, cream=M.ring, out=P.o, core=M.core, accent=M.lite;
+  for(let k=0;k<len;k++) set4(g,W,H,cx, topY-k, cream);                 // stem
+  stampF(g,W,H,cx, topY-Math.round(len*0.45), STENCILS.palmette5,[out,accent,cream,core],cream,0);
+  stampF(g,W,H,cx, topY-len, STENCILS.star5,[out,cream,cream,core],cream,0);   // finial tip
+}
+// curvilinear cloud-band spandrel: polar boundary with cusped lobes + arabesque tendrils
+function drawSpandrels(g,W,H,fs,P,rnd){
+  const S=P.spandrel, u=Math.min(W,H);
+  const base=u*0.21, amp=0.17, lobes=3, phase=rnd?rnd()*0.5:0.2;
+  const ext=Math.ceil(base*(1+amp))+2;
+  for(let dy=0;dy<=ext;dy++) for(let dx=0;dx<=ext;dx++){
+    const x=fs+dx, y=fs+dy;
+    if(x>=W/2||y>=H/2) continue;
+    const r=Math.hypot(dx,dy);
+    const s=Math.atan2(dy,dx)/(Math.PI/2);          // 0..1 across the quarter
+    const R=base*(1+amp*Math.cos(2*Math.PI*lobes*s+phase));
+    if(r>R) continue;
+    let v=S.bg;
+    if(r>R-1.4) v=P.o;            // dark cloud outline
+    else if(r>R-3) v=S.lite;      // cream highlight just inside the edge
+    set4(g,W,H,x,y,v);
+  }
+  // olive palmette with red heart, nested in the cloud
+  const c=fs+Math.round(base*0.36);
+  stampF(g,W,H,c,c,STENCILS.rosette7,[P.o,(P.leaf!=null?P.leaf:S.fg),S.lite,S.fg],S.lite,0);
+  drawTendril(g,W,H,fs,base,P,rnd);
+}
+// one curling stem; spawns leaves on alternating sides + side-branches; recursive
+function sprig(g,W,H,fs,sx,sy,ang,len,curl,P,rnd,depth){
+  let px=sx, py=sy, side=1;
+  for(let i=0;i<=len;i++){
+    const t=i/len;
+    ang += curl*0.11 + Math.sin(t*Math.PI*2)*0.04;     // continuous curl
+    px+=Math.cos(ang); py+=Math.sin(ang);
+    const x=Math.round(px), y=Math.round(py);
+    if(x<fs+1||y<fs+1||x>=W/2-1||y>=H/2-1) return;
+    set4(g,W,H,x,y,P.stem);
+    set4(g,W,H,x,y+0.0,P.stem);
+    if(i%3===0){                                        // leaf perpendicular, alternating side
+      const la=ang+side*Math.PI/2; side=-side;
+      const lx=Math.round(px+Math.cos(la)), ly=Math.round(py+Math.sin(la));
+      stampF(g,W,H,lx,ly,STENCILS.leaf3,P.themes[0],P.leaf,0);
+    }
+    if(i===len-1){                                      // little blossom at the tip
+      stampF(g,W,H,x,y,STENCILS.flower5,P.themes[(i+depth)%P.themes.length],P.leaf,0);
+    } else if(i%7===3){
+      stampF(g,W,H,x,y,STENCILS.bud3,P.themes[1%P.themes.length],P.leaf,0);
+    }
+    if(depth>0 && i>2 && i%5===0){                      // side-branch curling the other way
+      sprig(g,W,H,fs,px,py,ang-curl*1.2,Math.round(len*0.55),-curl*1.3,P,rnd,depth-1);
+    }
+  }
+}
+function drawTendril(g,W,H,fs,base,P,rnd){
+  const j=()=> (rnd?rnd():Math.random())*0.4-0.2;      // small jitter
+  const L=Math.round(base*1.5);
+  // main branching shoot down the diagonal, two stems curling opposite ways
+  sprig(g,W,H,fs, fs+base*0.58, fs+base*0.58, Math.PI*0.25+j(),  L,        0.9, P,rnd,2);
+  sprig(g,W,H,fs, fs+base*0.58, fs+base*0.58, Math.PI*0.25+j(),  Math.round(L*0.8), -1.0, P,rnd,2);
+  // two shoots hugging the cusped edge toward each border
+  sprig(g,W,H,fs, fs+base*0.9,  fs+base*0.34, Math.PI*0.5+j(),   Math.round(L*0.7),  0.8, P,rnd,1);
+  sprig(g,W,H,fs, fs+base*0.34, fs+base*0.9,  0+j(),             Math.round(L*0.7), -0.8, P,rnd,1);
+}
+
+// ===== Turkmen guls =====
+function gulOcta(dx,dy,ax,ay){ const a=Math.abs(dx),b=Math.abs(dy); return a<=ax&&b<=ay&&(a/ax+b/ay)<=1.38; }
+// Tekke gül: flattened octagon, cross-quartered, diagonal 2-colour quarters, internal hooks
+function drawGulTekke(g,W,H,cx,cy,r,P){
+  const put=(x,y,v)=>{ if(x>=0&&y>=0&&x<W&&y<H) g[y][x]=v; };
+  const light=P.gulBoss, dark=P.gulGround, hook=P.gulSecondary, out=P.o;
+  const ax=r, ay=Math.max(2,Math.round(r*0.9));
+  for(let dy=-ay-1;dy<=ay+1;dy++) for(let dx=-ax-1;dx<=ax+1;dx++){
+    if(!gulOcta(dx,dy,ax,ay)) continue;
+    let v=((dx>=0)===(dy>=0))? light : dark;                  // diagonal quarter split
+    if(!gulOcta(dx+(dx>=0?1:-1),dy,ax,ay)||!gulOcta(dx,dy+(dy>=0?1:-1),ax,ay)) v=out; // octagon rim
+    if(dx===0||dy===0) v=out;                                  // quartering cross
+    put(cx+dx,cy+dy,v);
+  }
+  const qx=Math.max(2,Math.round(ax*0.5)), qy=Math.max(2,Math.round(ay*0.5));
+  [[qx,qy],[-qx,qy],[qx,-qy],[-qx,-qy]].forEach(([ox,oy])=>{   // a hook in each quarter
+    const hc=((ox>=0)===(oy>=0))? dark : light;
+    put(cx+ox,cy+oy,hook); put(cx+ox-1,cy+oy,hc); put(cx+ox+1,cy+oy,hc);
+    put(cx+ox,cy+oy-1,hc); put(cx+ox,cy+oy+1,hc); put(cx+ox-1,cy+oy-1,hook);
+  });
+  put(cx,cy,hook); put(cx-1,cy,out); put(cx+1,cy,out); put(cx,cy-1,out); put(cx,cy+1,out);
+}
+// Yomut "dyrnak" gül: stepped lozenge with latch-hooks + quartering cross
+function drawGulDyrnak(g,W,H,cx,cy,r,P){
+  const put=(x,y,v)=>{ if(x>=0&&y>=0&&x<W&&y<H) g[y][x]=v; };
+  const light=P.gulBoss, dark=P.gulGround, hook=P.gulSecondary, out=P.o;
+  const band=Math.max(2,Math.round(r/3));
+  for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+    const d=Math.abs(dx)+Math.abs(dy); if(d>r) continue;
+    let v=(Math.floor(d/band)%2)? light : dark;
+    if(d===r||dx===0||dy===0) v=out;
+    put(cx+dx,cy+dy,v);
+  }
+  for(let t=band;t<r;t+=band){                                 // dyrnak hooks on the edges
+    const j=r-t;
+    [[t,j],[-t,j],[t,-j],[-t,-j]].forEach(([ox,oy])=>{ put(cx+ox+(ox>0?1:-1),cy+oy,hook); put(cx+ox,cy+oy+(oy>0?1:-1),hook); });
+  }
+  put(cx,cy,hook); put(cx-1,cy,out); put(cx+1,cy,out); put(cx,cy-1,out); put(cx,cy+1,out);
+}
+// Ersari "gülli" gül: large octagon, concentric, radial 8-point star inside (not quartered)
+function drawGulErsari(g,W,H,cx,cy,r,P){
+  const put=(x,y,v)=>{ if(x>=0&&y>=0&&x<W&&y<H) g[y][x]=v; };
+  const ivory=P.gulBoss, dark=P.gulGround, red=P.gulSecondary, out=P.o;
+  const ax=r, ay=Math.max(2,Math.round(r*1.04));
+  const inAx=Math.max(2,Math.round(ax*0.62)), inAy=Math.max(2,Math.round(ay*0.62));
+  for(let dy=-ay-1;dy<=ay+1;dy++) for(let dx=-ax-1;dx<=ax+1;dx++){
+    if(!gulOcta(dx,dy,ax,ay)) continue;
+    let v=ivory;                                                  // ivory outer ring
+    if(!gulOcta(dx+(dx>=0?1:-1),dy,ax,ay)||!gulOcta(dx,dy+(dy>=0?1:-1),ax,ay)) v=out;  // outer rim
+    if(gulOcta(dx,dy,inAx,inAy)){                                 // dark inner field
+      v=dark;
+      const nx=dx/inAx, ny=dy/inAy, rr=Math.hypot(nx,ny), ang=Math.atan2(ny,nx);
+      if(rr<=0.55+0.45*Math.cos(8*ang)) v=ivory;                 // 8-point star
+      if(rr<=0.30) v=red;                                        // red core
+      if(!gulOcta(dx+(dx>=0?1:-1),dy,inAx,inAy)||!gulOcta(dx,dy+(dy>=0?1:-1),inAx,inAy)) v=out; // inner rim
+    }
+    put(cx+dx,cy+dy,v);
+  }
+  const hx=Math.round(ax*0.82), hy=Math.round(ay*0.82);          // gülli marks on the 4 sides
+  [[0,hy],[0,-hy],[hx,0],[-hx,0]].forEach(([ox,oy])=>put(cx+ox,cy+oy,red));
+}
+function drawMiniDiamond(g,W,H,cx,cy,r,cols){
+  const put=(x,y,v)=>{ if(x>=0&&y>=0&&x<W&&y<H) g[y][x]=v; };
+  for(let d=r;d>=0;d--){ const v=cols[(r-d)%cols.length]; for(let i=-d;i<=d;i++){ const j=d-Math.abs(i); put(cx+i,cy+j,v); put(cx+i,cy-j,v);} }
+}
+function layoutGul(g,W,H,fs,P,rnd,density){
+  const innerW=W-2*fs, innerH=H-2*fs;
+  const cell=clampv(Math.round(Math.min(W,H)/(5+density*0.7)*(P.gulScale||1)),10,46);
+  const ncol=Math.max(2,Math.round(innerW/cell)), nrow=Math.max(2,Math.round(innerH/cell));
+  const cw=innerW/ncol, ch=innerH/nrow;
+  const r=Math.max(4,Math.floor(Math.min(cw,ch)*0.44)), rMin=Math.max(2,Math.floor(Math.min(cw,ch)*0.18));
+  const drawG=P.gulType==="dyrnak"? drawGulDyrnak : P.gulType==="ersari"? drawGulErsari : drawGulTekke;
+  for(let row=0;row<nrow;row++) for(let col=0;col<ncol;col++)
+    drawG(g,W,H,Math.round(fs+cw*(col+0.5)),Math.round(fs+ch*(row+0.5)),r,P);
+  for(let row=0;row<nrow-1;row++) for(let col=0;col<ncol-1;col++)
+    drawMiniDiamond(g,W,H,Math.round(fs+cw*(col+1)),Math.round(fs+ch*(row+1)),rMin,[P.gulSecondary,P.gulBoss,P.o]);
+}
+
+// Turkmen border: narrow geometric stripes (no floral band)
+function drawBordersTurkmen(g,W,H,P,bands){
+  const o=P.o, B=P.border, u=Math.min(W,H); let e=0;
+  const line=v=>{ setRingRect(g,W,H,e,v); e++; };
+  const ws=clampv(Math.round(u/55),2,3);
+  line(o);
+  bandSawtooth(g,W,H,e,ws,B.bg,B.fg); e+=ws; line(o);
+  // main stripe: two-tone beaded line + diamonds
+  const wm=clampv(Math.round(u/26),3,5), mid=e+(wm>>1), per=Math.max(3,wm);
+  bandFill(g,W,H,e,wm,B.bg);
+  for(let x=e+1;x<=W/2;x++) set4(g,W,H,x,mid,(x&1)?B.fg:B.gA);
+  for(let y=e+1;y<=H/2;y++) set4(g,W,H,mid,y,(y&1)?B.fg:B.gA);
+  const gem=(cx,cy)=>{ set4(g,W,H,cx,cy,B.lite); set4(g,W,H,cx-1,cy,B.fg); set4(g,W,H,cx+1,cy,B.fg); set4(g,W,H,cx,cy-1,B.fg); set4(g,W,H,cx,cy+1,B.fg); };
+  for(let x=e+per;x<=W/2;x+=per) gem(x,mid);
+  for(let y=e+per;y<=H/2;y+=per) gem(mid,y);
+  gem(mid,mid);
+  e+=wm; line(o);
+  bandSawtooth(g,W,H,e,ws,B.bg,B.gA); e+=ws; line(o);
+  for(let i=0;i<bands;i++){ guardRect(g,W,H,e,B.gA,B.gB); e++; line(o); }
+  return e;
+}
+
+// ===== generate =====
+function generate(W,H,rnd,P,density,bands,fieldMode,animals,centralType,sideMeds){
+  const g=makeGrid(W,H,P.g);
+  const fs=(P.layout==="gul")? drawBordersTurkmen(g,W,H,P,bands) : drawBorders(g,W,H,P,bands);
+  const innerW=W-2*fs, innerH=H-2*fs, cx=W>>1, cy=H>>1;
+  if(Math.min(innerW,innerH)<8) return g;
+  const open=fieldMode==="open";
+  const md=Math.min(innerW,innerH);
+  const field=(bold,haloR)=>{ open? layoutOpen(g,W,H,fs,P,rnd,density,haloR) : layoutAllover(g,W,H,fs,P,rnd,density,bold);
+                              if(animals) scatterAnimals(g,W,H,fs,P,rnd,haloR); };
+
+  if(P.layout==="gul"){
+    layoutGul(g,W,H,fs,P,rnd,density);   // Turkmen guls fill the field by design
+  } else if(P.layout==="rowmedallion"){
+    const r=Math.max(4,Math.floor(md*0.22));
+    field(true, r*1.2);
+    drawSpandrels(g,W,H,fs,P,rnd);
+    const dx=Math.floor(innerW*0.27);
+    drawMedallion(g,W,H,cx-dx,cy,r,P,rnd); // set4 mirrors -> left+right
+    drawMedallion(g,W,H,cx,cy,r,P,rnd);
+  } else if(P.layout==="allover"){
+    const r=Math.max(4,Math.floor(md*(open?0.27:0.16)));
+    field(false, open? r*1.2 : 0);
+    if(open || rnd()<0.65) drawMedallion(g,W,H,cx,cy,r,P,rnd);
+  } else { // medallion
+    const r=Math.max(5,Math.floor(md*(0.27+rnd()*0.05)));
+    field(false, r*1.15);
+    drawSpandrels(g,W,H,fs,P,rnd);
+    // optional dark flanking cartouches left & right (wide rugs only)
+    if(sideMeds && innerW>=innerH*1.25){
+      const sr=Math.max(4,Math.round(r*0.5)), sdx=Math.round(innerW*0.31);
+      drawMedallion(g,W,H,cx-sdx,cy,sr,P,rnd,{style:"curv",dark:true}); // set4 -> both sides
+    }
+    // half-medallions centred on the mid-edges, clipped to the field
+    const hr=Math.max(4,Math.round(r*0.6));
+    CLIP={x0:fs,y0:fs,x1:W-1-fs,y1:H-1-fs};
+    drawMedallion(g,W,H,cx,fs,hr,P,rnd);   // top & bottom (set4 mirrors y)
+    drawMedallion(g,W,H,fs,cy,hr,P,rnd);   // left & right (set4 mirrors x)
+    CLIP=null;
+    // central element — type varies by seed
+    const copts=centralType==="starDark"?{style:"star",dark:true}
+               :centralType==="starLight"?{style:"star",dark:false}:null;
+    drawMedallion(g,W,H,cx,cy,r,P,rnd,copts);
+  }
+  return g;
+}
+
+// ===== colour / aging =====
+function hexRgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function lerp(a,b,t){ return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]; }
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const PARCH=[212,196,158], CREASE=[18,12,8];
+
+// abrash: horizontal tonal banding from separate dye lots — a softened random walk over rows
+function buildAbrash(H,arnd){
+  const nb=6+Math.floor(arnd()*9);
+  const bounds=[0]; for(let i=1;i<nb;i++) bounds.push(Math.floor(arnd()*H)); bounds.push(H);
+  bounds.sort((a,b)=>a-b);
+  const L=new Float32Array(H), T=new Float32Array(H);
+  let lv=0, tv=0;
+  for(let i=0;i<bounds.length-1;i++){
+    lv=clamp(lv+(arnd()*2-1)*0.7,-1,1);     // lightness drift
+    tv=clamp(tv+(arnd()*2-1)*0.6,-1,1);     // warm/cool drift
+    for(let y=bounds[i];y<bounds[i+1];y++){ L[y]=lv; T[y]=tv; }
+  }
+  // soften band edges (3-row average)
+  const sL=new Float32Array(H), sT=new Float32Array(H), r=2;
+  for(let y=0;y<H;y++){ let a=0,b=0,n=0; for(let k=-r;k<=r;k++){ const yy=y+k; if(yy>=0&&yy<H){ a+=L[yy]; b+=T[yy]; n++; } } sL[y]=a/n; sT[y]=b/n; }
+  return {L:sL,T:sT};
+}
+
+// ===== render =====
+const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+function render(){
+  const W=+document.getElementById('res').value;
+  const H=Math.round(W/FORMATS[fmt]);
+  const bands=+document.getElementById('border').value;
+  const wear=+document.getElementById('wear').value;
+  const fringe=+document.getElementById('fringe').value;
+  // sub-preset, density and "character" are derived from the seed, not manual controls
+  const srnd=mulberry32((seed^0x1234abcd)>>>0);
+  const keys=CATS[category]||Object.keys(PRESETS);
+  style=keys[Math.floor(srnd()*keys.length)];
+  const P=PRESETS[style];
+  const density=4+Math.floor(srnd()*5);
+  const fieldMode=srnd()<0.5?"open":"dense";
+  const animals=srnd()<0.6;
+  const abrash=srnd()<0.3?0:0.18+srnd()*0.4;
+  const ct=srnd();
+  const centralType=ct<0.45?"native":(ct<0.75?"starDark":"starLight");
+  const sideMeds=srnd()<0.5;
+  const grid=generate(W,H,mulberry32(seed),P,density,bands,fieldMode,animals,centralType,sideMeds);
+
+  const wrnd=mulberry32((seed^0x9e3779b9)>>>0);
+  const f1=0.18+wrnd()*0.12,f2=0.15+wrnd()*0.12,p1=wrnd()*6.28,p2=wrnd()*6.28;
+  const noise=new Float32Array(W*H); for(let i=0;i<noise.length;i++) noise[i]=wrnd()*2-1;
+  const rgb=P.colors.map(hexRgb);
+  const A=abrash>0? buildAbrash(H, mulberry32((seed^0x85ebca6b)>>>0)) : null;
+
+  const PX=Math.max(2,Math.floor(1080/W));
+  const frC=Math.round(clampv(Math.round(H*0.10),4,12)*fringe);   // fringe rows per end
+  canvas.width=W*PX; canvas.height=(H+2*frC)*PX;
+  const oy=frC*PX;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const gi=grid[y][x];
+    let c=rgb[gi]||rgb[P.g];
+    if(A){
+      const amt=abrash*(gi===P.g?1:0.4);              // strongest on the ground
+      const dl=A.L[y]*amt*22, dt=A.T[y]*amt*13;        // lightness + warm/cool
+      c=[c[0]+dl+dt, c[1]+dl, c[2]+dl-dt];
+    }
+    if(wear>0){
+      const band=Math.sin((x+y*0.3)*f1+p1)*0.6+Math.sin((y-x*0.2)*f2+p2)*0.4;
+      const w=band*0.7+noise[y*W+x]*0.5;
+      const fade=clamp(wear*Math.max(0,w-0.15)*1.4,0,0.82);
+      const dark=clamp(wear*Math.max(0,-w-0.20)*1.2,0,0.55);
+      if(fade>0) c=lerp(c,PARCH,fade);
+      if(dark>0) c=lerp(c,CREASE,dark);
+    }
+    ctx.fillStyle=`rgb(${clamp(c[0],0,255)|0},${clamp(c[1],0,255)|0},${clamp(c[2],0,255)|0})`;
+    ctx.fillRect(x*PX, oy+y*PX, PX,PX);
+  }
+  // kilim fringe: exposed ivory warp ends, bundled, at top & bottom
+  if(frC>0){
+    const fr=mulberry32((seed^0xc2b2ae35)>>>0);
+    const iv=rgb[lightestIdx(P.colors)];
+    const ivD=[iv[0]*0.78,iv[1]*0.76,iv[2]*0.72];
+    const fill=(col,cx,cy)=>{ ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`; ctx.fillRect(cx*PX,cy*PX,PX,PX); };
+    for(let x=0;x<W;x++){
+      if(x%4===3) continue;                                  // gaps → tied bundles
+      const col=(fr()<0.30)?ivD:iv;
+      const lt=Math.max(2,Math.round(frC*(0.55+fr()*0.45)));
+      for(let k=0;k<lt;k++) fill(col, x, frC-1-k);            // top strand (hangs up)
+      fill(ivD, x, frC-1);                                    // knot at carpet edge
+      const lb=Math.max(2,Math.round(frC*(0.55+fr()*0.45)));
+      for(let k=0;k<lb;k++) fill(col, x, frC+H+k);            // bottom strand (hangs down)
+      fill(ivD, x, frC+H);
+    }
+  }
+  document.getElementById('seedTxt').textContent=seed.toString(36);
+  document.getElementById('famNote').textContent=P.name+" · "+P.family.split('·').slice(1).join('·').trim();
+  drawPalette(P);
+}
+function drawPalette(P){ const el=document.getElementById('pal'); el.innerHTML='';
+  P.colors.forEach(c=>{ const d=document.createElement('div'); d.className='sw'; d.style.background=c; el.appendChild(d); }); }
+
+// ===== UI =====
+// group presets by category (country); subtype is chosen at random from the seed
+const CAT_ORDER=["Персидские","Кавказские","Туркменские","Советские"];
+const CATS={}; Object.entries(PRESETS).forEach(([k,v])=>{ const c=v.family.split('·')[0].trim(); (CATS[c]=CATS[c]||[]).push(k); });
+const stylesEl=document.getElementById('styles');
+const catGrid=document.createElement('div'); catGrid.className='styles'; stylesEl.appendChild(catGrid);
+CAT_ORDER.forEach(c=>{
+  const b=document.createElement('div'); b.className='chip'+(c===category?' on':''); b.textContent=c;
+  b.onclick=()=>{ category=c; catGrid.querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); b.classList.add('on'); render(); };
+  catGrid.appendChild(b);
+});
+const fmtEl=document.getElementById('fmt');
+Object.keys(FORMATS).forEach(k=>{
+  const b=document.createElement('div'); b.className='chip'+(k===fmt?' on':''); b.textContent=k;
+  b.onclick=()=>{ fmt=k; fmtEl.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); render(); };
+  fmtEl.appendChild(b);
+});
+function bindRange(id,valId){ const r=document.getElementById(id),v=document.getElementById(valId); r.oninput=()=>{ v.textContent=r.value; render(); }; }
+bindRange('res','resVal'); bindRange('border','borderVal'); bindRange('wear','wearVal'); bindRange('fringe','fringeVal');
+document.getElementById('gen').onclick=()=>{ seed=(Math.random()*1e9)|0; render(); };
+document.getElementById('save').onclick=()=>{ const a=document.createElement('a'); a.download=`carpet_${style}_${seed.toString(36)}.png`; a.href=canvas.toDataURL('image/png'); a.click(); };
+render();
+</script>
+</body>
+</html>
