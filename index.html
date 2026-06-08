@@ -59,7 +59,7 @@
   .note { color:var(--muted); font-size:11px; margin-top:6px; }
   @media (max-width: 760px) {
     html, body { height:auto; min-height:100%; }
-    body { flex-direction:column; min-height:100vh; overflow-x:hidden; }
+    body { flex-direction:column; height:100svh; overflow:hidden; }
     aside {
       width:100%;
       max-width:100vw;
@@ -88,17 +88,15 @@
     label.cap { margin-bottom:6px; font-size:10px; }
     .chip { min-height:34px; padding:8px 3px; font-size:11px; display:flex; align-items:center; justify-content:center; }
     button.act { min-height:40px; padding:10px; }
-    main { width:100%; max-width:100vw; flex:1; align-items:flex-start; padding:18px 14px calc(var(--peek) + 16px); }
-    .frame { width:100%; max-width:100%; min-width:0; padding:10px; overflow:hidden; }
-    canvas { max-width:100%; max-height:62vh; margin:0 auto; }
+    main { width:100%; max-width:100vw; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:12px; padding-bottom:calc(var(--peek) + 12px); overflow:hidden; }
+    .frame { max-width:100%; padding:10px; display:flex; }
+    canvas { max-width:100%; width:auto; height:auto; max-height:calc(100svh - 390px); }
   }
   @media (max-width: 560px) {
     aside { padding:14px; gap:11px; }
     .topbar { padding-right:116px; }
     .sub { font-size:10.5px; }
-    main { padding:14px 10px 20px; }
     .frame { padding:8px; }
-    canvas { width:100%; max-height:none; }
   }
 </style>
 </head>
@@ -1380,22 +1378,44 @@ document.getElementById('langRu').onclick=()=>applyLang('ru');
 (function(){
   const sheet=document.getElementById('settingsDrawer');
   const handle=sheet.querySelector('.sheet-handle');
+  const mainEl=document.querySelector('main');
+  const cvs=document.getElementById('c');
   const PEEK=268;
+  const EASE='max-height .35s cubic-bezier(.32,.72,0,1)';
   function isMobile(){ return window.innerWidth<=760; }
-  function initSheet(){ if(isMobile()){ sheet.style.transition='none'; sheet.style.maxHeight=PEEK+'px'; sheet.style.overflow='hidden'; sheet.classList.remove('expanded'); } else { sheet.style.maxHeight=''; sheet.style.overflow=''; sheet.classList.remove('expanded'); } }
-  initSheet();
-  window.addEventListener('resize', initSheet);
+  function setLayout(sheetH,animate){
+    const asideH=document.querySelector('aside').offsetHeight;
+    const freeH=window.innerHeight-asideH-sheetH;
+    const maxH=Math.max(40,freeH-24);
+    if(animate){
+      sheet.style.transition=EASE;
+      mainEl.style.transition='padding-bottom .35s cubic-bezier(.32,.72,0,1)';
+      cvs.style.transition='max-height .35s cubic-bezier(.32,.72,0,1)';
+    } else {
+      sheet.style.transition='none';
+      mainEl.style.transition='none';
+      cvs.style.transition='none';
+    }
+    sheet.style.maxHeight=sheetH+'px';
+    mainEl.style.paddingBottom=(sheetH+12)+'px';
+    cvs.style.maxHeight=maxH+'px';
+  }
+  function initSheet(){
+    if(isMobile()){ sheet.style.overflow='hidden'; sheet.classList.remove('expanded'); setLayout(PEEK,false); }
+    else { sheet.style.maxHeight=''; sheet.style.overflow=''; sheet.classList.remove('expanded'); mainEl.style.paddingBottom=''; mainEl.style.transition=''; cvs.style.maxHeight=''; cvs.style.transition=''; }
+  }
+  requestAnimationFrame(initSheet);
+  window.addEventListener('resize',initSheet);
   function snap(exp){
     const MAX=window.innerHeight*.84;
-    sheet.style.transition='max-height .35s cubic-bezier(.32,.72,0,1)';
-    sheet.style.maxHeight=(exp?MAX:PEEK)+'px';
+    setLayout(exp?MAX:PEEK,true);
     sheet.classList.toggle('expanded',exp);
     sheet.style.overflow=exp?'hidden auto':'hidden';
   }
   handle.addEventListener('click',()=>snap(!sheet.classList.contains('expanded')));
   let startY,startH;
-  handle.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;startH=sheet.getBoundingClientRect().height;sheet.style.transition='none';},{passive:true});
-  handle.addEventListener('touchmove',e=>{const dy=startY-e.touches[0].clientY;const MAX=window.innerHeight*.84;sheet.style.maxHeight=Math.max(PEEK,Math.min(MAX,startH+dy))+'px';},{passive:true});
+  handle.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;startH=sheet.getBoundingClientRect().height;setLayout(startH,false);},{passive:true});
+  handle.addEventListener('touchmove',e=>{const dy=startY-e.touches[0].clientY;const MAX=window.innerHeight*.84;setLayout(Math.max(PEEK,Math.min(MAX,startH+dy)),false);},{passive:true});
   handle.addEventListener('touchend',()=>{const cur=sheet.getBoundingClientRect().height;const MAX=window.innerHeight*.84;snap(cur>PEEK+(MAX-PEEK)*.35);},{passive:true});
 })();
 applyLang(lang);
