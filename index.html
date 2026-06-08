@@ -4,19 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixel Carpets - procedural generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#15110d; --panel:#1d1610; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; --red:#7a1518; --gold:#c8a042; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body { background:var(--bg); color:var(--text);
-    font:14px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; display:flex; min-height:100%; }
+    font:12px/1.6 'Silkscreen',ui-monospace,monospace; display:flex; min-height:100%; }
   aside { width:320px; flex:0 0 320px; background:var(--panel); background-image:repeating-linear-gradient(-45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px),repeating-linear-gradient(45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px); border-right:1px solid var(--line); box-shadow:inset -3px 0 0 rgba(200,136,79,.12); padding:22px 20px; overflow-y:auto; }
-  .topbar { position:relative; padding-right:48px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .topbar { position:relative; padding-right:112px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
   .topbar::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:3px; background:repeating-linear-gradient(90deg,var(--accent) 0,var(--accent) 4px,transparent 4px,transparent 9px); opacity:.5; }
   h1 { font-size:15px; letter-spacing:.5px; margin:0 0 2px; }
   .sub { color:var(--muted); font-size:11.5px; }
-  .lang { position:absolute; top:0; right:0; display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-  .lang button { border:0; border-left:1px solid var(--line); background:#1a140e; color:var(--muted); padding:5px 7px; cursor:pointer; font:10px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  .top-right { position:absolute; top:0; right:0; display:flex; align-items:center; gap:6px; }
+  .settings-toggle { display:none; border:1px solid var(--line); background:#1a140e; color:var(--muted); padding:7px 11px; border-radius:2px; cursor:pointer; font:11px/1 'Silkscreen',monospace; transition:.12s; }
+  .settings-toggle.on { background:var(--accent); color:#1a140e; border-color:var(--accent); }
+  .lang { display:flex; border:1px solid var(--line); border-radius:2px; overflow:hidden; }
+  .lang button { border:0; border-left:1px solid var(--line); background:#1a140e; color:var(--muted); padding:7px 10px; cursor:pointer; font:10px/1 'Silkscreen',monospace; }
   .lang button:first-child { border-left:0; }
   .lang button.on { background:var(--accent); color:#1a140e; font-weight:600; }
   .field { margin-bottom:18px; }
@@ -36,6 +41,9 @@
   .chip { border:1px solid var(--line); background:#1a140e; color:var(--text); padding:8px 4px; border-radius:2px; cursor:pointer; text-align:center; font-size:12px; transition:.12s; }
   .chip:hover { border-color:var(--accent); color:var(--accent); }
   .chip.on { background:var(--accent); color:#1a140e; border-color:var(--accent); font-weight:600; box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--accent); }
+  .cat-chip { display:flex; flex-direction:column; align-items:center; gap:5px; padding:10px 6px 8px; }
+  .cat-icon svg { display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
+  .cat-label { font-size:10px; letter-spacing:.5px; }
   .fmt { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
   .row { display:flex; gap:8px; }
   button.act { flex:1; border:1px solid var(--line); background:#1a140e; color:var(--text); padding:11px; border-radius:2px; cursor:pointer; font-family:inherit; font-size:12.5px; transition:.12s; }
@@ -47,6 +55,7 @@
   main { flex:1; display:flex; align-items:center; justify-content:center; padding:40px; min-width:0; background:radial-gradient(ellipse 75% 65% at 55% 50%,#1e1710 0%,var(--bg) 100%); }
   .frame { padding:16px; background:#0d0a07; border-radius:4px; box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 0 0 1px #2a2018; }
   canvas { display:block; image-rendering:pixelated; max-width:min(80vw,1040px); max-height:82vh; width:auto; height:auto; background:#000; }
+  .sheet-handle { display:none; }
   .note { color:var(--muted); font-size:11px; margin-top:6px; }
   @media (max-width: 760px) {
     html, body { height:auto; min-height:100%; }
@@ -64,6 +73,17 @@
       overflow:visible;
     }
     .topbar { margin-bottom:0; }
+    .settings-toggle { display:flex; align-items:center; justify-content:center; font-size:14px; padding:9px 13px; }
+    .lang button { font-size:12px; padding:9px 13px; }
+    .backdrop { position:fixed; inset:0; z-index:99; background:rgba(0,0,0,.65); opacity:0; pointer-events:none; transition:opacity .3s; }
+    body.settings-open .backdrop { opacity:1; pointer-events:all; }
+    .settings-drawer { display:grid !important; grid-template-columns:1fr; gap:16px; position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--panel); background-image:repeating-linear-gradient(-45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px),repeating-linear-gradient(45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px); border-radius:20px 20px 0 0; border-top:1px solid var(--line); padding:0 20px calc(28px + env(safe-area-inset-bottom,0px)); max-height:82vh; overflow-y:auto; transform:translateY(110%); transition:transform .35s cubic-bezier(.32,.72,0,1); }
+    body.settings-open .settings-drawer { transform:translateY(0); }
+    .sheet-handle { display:block; width:40px; height:4px; background:var(--line); border-radius:2px; margin:14px auto 4px; }
+    .styles { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .styles::-webkit-scrollbar { display:none; }
+    .cat-chip { flex:0 0 auto; min-width:68px; }
+    .fmt { grid-template-columns:repeat(4,1fr); }
     .field { margin-bottom:0; min-width:0; }
     .styles,
     .fmt { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -76,7 +96,7 @@
   }
   @media (max-width: 560px) {
     aside { padding:14px; gap:11px; }
-    .topbar { padding-right:50px; }
+    .topbar { padding-right:116px; }
     .sub { font-size:10.5px; }
     main { padding:14px 10px 20px; }
     .frame { padding:8px; }
@@ -91,9 +111,12 @@
       <h1 data-i18n="title">PIXEL CARPETS</h1>
       <div class="sub" data-i18n="subtitle">procedural · natural dyes</div>
     </div>
-    <div class="lang" aria-label="Language">
-      <button type="button" id="langEn" class="on">EN</button>
-      <button type="button" id="langRu">RU</button>
+    <div class="top-right">
+      <button type="button" id="settingsToggle" class="settings-toggle">⚙</button>
+      <div class="lang" aria-label="Language">
+        <button type="button" id="langEn" class="on">EN</button>
+        <button type="button" id="langRu">RU</button>
+      </div>
     </div>
   </div>
 
@@ -102,6 +125,9 @@
       <button class="act primary" id="gen" data-i18n="generate">Generate</button>
     </div>
   </div>
+
+  <div class="settings-drawer" id="settingsDrawer">
+  <div class="sheet-handle"></div>
 
   <div class="field field-styles">
     <div id="styles"></div>
@@ -138,7 +164,10 @@
     </div>
   </div>
 
+  </div>
+
 </aside>
+<div class="backdrop" id="backdrop"></div>
 
 <main>
   <div class="frame"><canvas id="c" width="800" height="533"></canvas></div>
@@ -1306,11 +1335,27 @@ const I18N={
   }
 };
 let lang="en";
+const CAT_ICONS={
+  "Персидские":  ["..ooo..","o.ooo.o","ooooooo","o.ooo.o","ooooooo","o.ooo.o","..ooo.."],
+  "Кавказские":  ["...o...","..ooo..","ooooooo","oo.o.oo","ooooooo","..ooo..","...o..."],
+  "Туркменские": [".o.o.o.","oo.o.oo",".ooooo.","ooooooo",".ooooo.","oo.o.oo",".o.o.o."],
+  "Афганские":   ["o.....o","oo...oo","ooo.ooo","ooooooo","ooo.ooo","oo...oo","o.....o"],
+  "Советские":   ["...o...","..ooo..","ooooooo","..ooo..","o.ooo.o",".o.o.o.","o.....o"]
+};
+function makeCatIcon(key){
+  const rows=CAT_ICONS[key]; if(!rows) return '';
+  const S=3,H=rows.length,W=rows[0].length;
+  let r='';
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++) if(rows[y][x]==='o') r+=`<rect x="${x*S}" y="${y*S}" width="${S}" height="${S}" fill="currentColor"/>`;
+  return `<svg width="${W*S}" height="${H*S}" viewBox="0 0 ${W*S} ${H*S}" xmlns="http://www.w3.org/2000/svg" style="display:block">${r}</svg>`;
+}
 const stylesEl=document.getElementById('styles');
 const catGrid=document.createElement('div'); catGrid.className='styles'; stylesEl.appendChild(catGrid);
 CAT_ORDER.forEach(c=>{
-  const b=document.createElement('div'); b.className='chip'+(c===category?' on':''); b.dataset.category=c;
+  const b=document.createElement('div'); b.className='chip cat-chip'+(c===category?' on':''); b.dataset.category=c;
   b.onclick=()=>{ category=c; catGrid.querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); b.classList.add('on'); render(); };
+  const ico=document.createElement('div'); ico.className='cat-icon'; ico.innerHTML=makeCatIcon(c); b.appendChild(ico);
+  const lbl=document.createElement('span'); lbl.className='cat-label'; b.appendChild(lbl);
   catGrid.appendChild(b);
 });
 const fmtEl=document.getElementById('fmt');
@@ -1329,12 +1374,16 @@ function applyLang(nextLang){
   document.documentElement.lang=t.htmlLang;
   document.title=t.pageTitle;
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent=t[el.dataset.i18n]; });
-  catGrid.querySelectorAll('.chip').forEach(el=>{ el.textContent=t.category[el.dataset.category]; });
+  catGrid.querySelectorAll('.chip').forEach(el=>{ el.querySelector('.cat-label').textContent=t.category[el.dataset.category]; });
   document.getElementById('langEn').classList.toggle('on',lang==="en");
   document.getElementById('langRu').classList.toggle('on',lang==="ru");
 }
 document.getElementById('langEn').onclick=()=>applyLang('en');
 document.getElementById('langRu').onclick=()=>applyLang('ru');
+function openSettings(){ document.body.classList.add('settings-open'); document.getElementById('settingsToggle').classList.add('on'); }
+function closeSettings(){ document.body.classList.remove('settings-open'); document.getElementById('settingsToggle').classList.remove('on'); }
+document.getElementById('settingsToggle').onclick=()=>document.body.classList.contains('settings-open')?closeSettings():openSettings();
+document.getElementById('backdrop').onclick=closeSettings;
 applyLang(lang);
 render();
 </script>
