@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Пиксельные ковры — процедурный генератор</title>
+<title>Pixel Carpets - procedural generator</title>
 <style>
   :root { --bg:#15110d; --panel:#211a13; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; }
   * { box-sizing: border-box; }
@@ -11,8 +11,13 @@
   body { background:var(--bg); color:var(--text);
     font:14px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; display:flex; min-height:100%; }
   aside { width:320px; flex:0 0 320px; background:var(--panel); border-right:1px solid var(--line); padding:22px 20px; overflow-y:auto; }
+  .topbar { position:relative; padding-right:48px; margin-bottom:22px; }
   h1 { font-size:15px; letter-spacing:.5px; margin:0 0 2px; }
-  .sub { color:var(--muted); font-size:11.5px; margin-bottom:22px; }
+  .sub { color:var(--muted); font-size:11.5px; }
+  .lang { position:absolute; top:0; right:0; display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .lang button { border:0; border-left:1px solid var(--line); background:#1a140e; color:var(--muted); padding:5px 7px; cursor:pointer; font:10px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  .lang button:first-child { border-left:0; }
+  .lang button.on { background:var(--accent); color:#1a140e; font-weight:600; }
   .field { margin-bottom:18px; }
   .fam { font-size:10px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin:12px 0 6px; }
   .fam:first-child { margin-top:0; }
@@ -35,49 +40,91 @@
   .frame { padding:16px; background:#0d0a07; border-radius:4px; box-shadow:0 24px 60px rgba(0,0,0,.5), inset 0 0 0 1px #2a2018; }
   canvas { display:block; image-rendering:pixelated; max-width:min(80vw,1040px); max-height:82vh; width:auto; height:auto; background:#000; }
   .note { color:var(--muted); font-size:11px; margin-top:6px; }
+  @media (max-width: 760px) {
+    html, body { height:auto; min-height:100%; }
+    body { flex-direction:column; min-height:100vh; overflow-x:hidden; }
+    aside {
+      width:100%;
+      max-width:100vw;
+      flex:0 0 auto;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      border-right:0;
+      border-bottom:1px solid var(--line);
+      padding:16px;
+      overflow:visible;
+    }
+    .topbar { margin-bottom:0; }
+    .field { margin-bottom:0; min-width:0; }
+    .styles,
+    .fmt { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    label.cap { margin-bottom:6px; font-size:10px; }
+    .chip { min-height:34px; padding:8px 3px; font-size:11px; display:flex; align-items:center; justify-content:center; }
+    button.act { min-height:40px; padding:10px; }
+    main { width:100%; max-width:100vw; flex:1; align-items:flex-start; padding:18px 14px 24px; }
+    .frame { width:100%; max-width:100%; min-width:0; padding:10px; overflow:hidden; }
+    canvas { max-width:100%; max-height:62vh; margin:0 auto; }
+  }
+  @media (max-width: 560px) {
+    aside { padding:14px; gap:11px; }
+    .topbar { padding-right:50px; }
+    .sub { font-size:10.5px; }
+    main { padding:14px 10px 20px; }
+    .frame { padding:8px; }
+    canvas { width:100%; max-height:none; }
+  }
 </style>
 </head>
 <body>
 <aside>
-  <h1>ПИКСЕЛЬНЫЕ КОВРЫ</h1>
-  <div class="sub">процедурный · анатомия · природные красители</div>
-
-  <div class="field">
-    <div class="row">
-      <button class="act primary" id="gen">Сгенерировать</button>
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="title">PIXEL CARPETS</h1>
+      <div class="sub" data-i18n="subtitle">procedural · natural dyes</div>
+    </div>
+    <div class="lang" aria-label="Language">
+      <button type="button" id="langEn" class="on">EN</button>
+      <button type="button" id="langRu">RU</button>
     </div>
   </div>
 
-  <div class="field">
+  <div class="field field-gen">
+    <div class="row">
+      <button class="act primary" id="gen" data-i18n="generate">Generate</button>
+    </div>
+  </div>
+
+  <div class="field field-styles">
     <div id="styles"></div>
   </div>
 
-  <div class="field">
-    <label class="cap">Формат</label>
+  <div class="field field-format">
+    <label class="cap" data-i18n="format">Format</label>
     <div class="fmt" id="fmt"></div>
   </div>
 
-  <div class="field">
-    <label class="cap">Детализация <b id="resVal">140</b></label>
+  <div class="field field-range">
+    <label class="cap"><span data-i18n="detail">Detail</span> <b id="resVal">140</b></label>
     <input type="range" id="res" min="72" max="216" step="4" value="140">
   </div>
 
-  <div class="field">
-    <label class="cap">Сторожевые каймы <b id="borderVal">2</b></label>
+  <div class="field field-range">
+    <label class="cap"><span data-i18n="borders">Guard borders</span> <b id="borderVal">2</b></label>
     <input type="range" id="border" min="0" max="3" step="1" value="2">
   </div>
 
-  <div class="field">
-    <label class="cap">Потёртость <b id="wearVal">0.25</b></label>
+  <div class="field field-range">
+    <label class="cap"><span data-i18n="wear">Wear</span> <b id="wearVal">0.25</b></label>
     <input type="range" id="wear" min="0" max="1" step="0.05" value="0.25">
   </div>
 
-  <div class="field">
-    <label class="cap">Бахрома <b id="fringeVal">0.6</b></label>
+  <div class="field field-range">
+    <label class="cap"><span data-i18n="fringe">Fringe</span> <b id="fringeVal">0.6</b></label>
     <input type="range" id="fringe" min="0" max="1" step="0.05" value="0.6">
   </div>
 
-  <div class="field">
+  <div class="field field-save">
     <div class="row">
       <button class="act" id="save">↓ PNG</button>
     </div>
@@ -1210,10 +1257,51 @@ function render(){
 // group presets by category (country); subtype is chosen at random from the seed
 const CAT_ORDER=["Персидские","Кавказские","Туркменские","Афганские","Советские"];
 const CATS={}; Object.entries(PRESETS).forEach(([k,v])=>{ const c=v.family.split('·')[0].trim(); (CATS[c]=CATS[c]||[]).push(k); });
+const I18N={
+  en:{
+    htmlLang:"en",
+    pageTitle:"Pixel Carpets - procedural generator",
+    title:"PIXEL CARPETS",
+    subtitle:"procedural · natural dyes",
+    generate:"Generate",
+    format:"Format",
+    detail:"Detail",
+    borders:"Guard borders",
+    wear:"Wear",
+    fringe:"Fringe",
+    category:{
+      "Персидские":"Persian",
+      "Кавказские":"Caucasian",
+      "Туркменские":"Turkmen",
+      "Афганские":"Afghan",
+      "Советские":"Soviet"
+    }
+  },
+  ru:{
+    htmlLang:"ru",
+    pageTitle:"Пиксельные ковры - процедурный генератор",
+    title:"ПИКСЕЛЬНЫЕ КОВРЫ",
+    subtitle:"процедурный · природные красители",
+    generate:"Сгенерировать",
+    format:"Формат",
+    detail:"Детализация",
+    borders:"Сторожевые каймы",
+    wear:"Потёртость",
+    fringe:"Бахрома",
+    category:{
+      "Персидские":"Персидские",
+      "Кавказские":"Кавказские",
+      "Туркменские":"Туркменские",
+      "Афганские":"Афганские",
+      "Советские":"Советские"
+    }
+  }
+};
+let lang="en";
 const stylesEl=document.getElementById('styles');
 const catGrid=document.createElement('div'); catGrid.className='styles'; stylesEl.appendChild(catGrid);
 CAT_ORDER.forEach(c=>{
-  const b=document.createElement('div'); b.className='chip'+(c===category?' on':''); b.textContent=c;
+  const b=document.createElement('div'); b.className='chip'+(c===category?' on':''); b.dataset.category=c;
   b.onclick=()=>{ category=c; catGrid.querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); b.classList.add('on'); render(); };
   catGrid.appendChild(b);
 });
@@ -1227,6 +1315,19 @@ function bindRange(id,valId){ const r=document.getElementById(id),v=document.get
 bindRange('res','resVal'); bindRange('border','borderVal'); bindRange('wear','wearVal'); bindRange('fringe','fringeVal');
 document.getElementById('gen').onclick=()=>{ seed=(Math.random()*1e9)|0; render(); };
 document.getElementById('save').onclick=()=>{ const a=document.createElement('a'); a.download=`carpet_${style}_${seed.toString(36)}.png`; a.href=canvas.toDataURL('image/png'); a.click(); };
+function applyLang(nextLang){
+  lang=nextLang;
+  const t=I18N[lang];
+  document.documentElement.lang=t.htmlLang;
+  document.title=t.pageTitle;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent=t[el.dataset.i18n]; });
+  catGrid.querySelectorAll('.chip').forEach(el=>{ el.textContent=t.category[el.dataset.category]; });
+  document.getElementById('langEn').classList.toggle('on',lang==="en");
+  document.getElementById('langRu').classList.toggle('on',lang==="ru");
+}
+document.getElementById('langEn').onclick=()=>applyLang('en');
+document.getElementById('langRu').onclick=()=>applyLang('ru');
+applyLang(lang);
 render();
 </script>
 </body>
