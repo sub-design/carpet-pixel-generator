@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#15110d; --panel:#1d1610; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; --red:#7a1518; --gold:#c8a042; --peek:208px; }
+  :root { --bg:#15110d; --panel:#1d1610; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; --red:#7a1518; --gold:#c8a042; --peek:268px; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body { background:var(--bg); color:var(--text);
@@ -110,7 +110,6 @@
       <div class="sub" data-i18n="subtitle">procedural · natural dyes</div>
     </div>
     <div class="top-right">
-      <button type="button" id="settingsToggle" class="settings-toggle">⚙</button>
       <div class="lang" aria-label="Language">
         <button type="button" id="langEn" class="on">EN</button>
         <button type="button" id="langRu">RU</button>
@@ -118,14 +117,14 @@
     </div>
   </div>
 
+  <div class="settings-drawer" id="settingsDrawer">
+  <div class="sheet-handle"></div>
+
   <div class="field field-gen">
     <div class="row">
       <button class="act primary" id="gen" data-i18n="generate">Generate</button>
     </div>
   </div>
-
-  <div class="settings-drawer" id="settingsDrawer">
-  <div class="sheet-handle"></div>
 
   <div class="field field-styles">
     <div id="styles"></div>
@@ -1381,10 +1380,9 @@ document.getElementById('langRu').onclick=()=>applyLang('ru');
 (function(){
   const sheet=document.getElementById('settingsDrawer');
   const handle=sheet.querySelector('.sheet-handle');
-  const toggle=document.getElementById('settingsToggle');
-  const PEEK=208;
+  const PEEK=268;
   function isMobile(){ return window.innerWidth<=760; }
-  function initSheet(){ if(isMobile()){ sheet.style.transition='none'; sheet.style.maxHeight=PEEK+'px'; sheet.style.overflow='hidden'; sheet.classList.remove('expanded'); toggle.classList.remove('on'); } else { sheet.style.maxHeight=''; sheet.style.overflow=''; sheet.classList.remove('expanded'); } }
+  function initSheet(){ if(isMobile()){ sheet.style.transition='none'; sheet.style.maxHeight=PEEK+'px'; sheet.style.overflow='hidden'; sheet.classList.remove('expanded'); } else { sheet.style.maxHeight=''; sheet.style.overflow=''; sheet.classList.remove('expanded'); } }
   initSheet();
   window.addEventListener('resize', initSheet);
   function snap(exp){
@@ -1393,10 +1391,8 @@ document.getElementById('langRu').onclick=()=>applyLang('ru');
     sheet.style.maxHeight=(exp?MAX:PEEK)+'px';
     sheet.classList.toggle('expanded',exp);
     sheet.style.overflow=exp?'hidden auto':'hidden';
-    toggle.classList.toggle('on',exp);
   }
   handle.addEventListener('click',()=>snap(!sheet.classList.contains('expanded')));
-  toggle.onclick=()=>snap(!sheet.classList.contains('expanded'));
   let startY,startH;
   handle.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;startH=sheet.getBoundingClientRect().height;sheet.style.transition='none';},{passive:true});
   handle.addEventListener('touchmove',e=>{const dy=startY-e.touches[0].clientY;const MAX=window.innerHeight*.84;sheet.style.maxHeight=Math.max(PEEK,Math.min(MAX,startH+dy))+'px';},{passive:true});
