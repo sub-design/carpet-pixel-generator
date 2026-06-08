@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#15110d; --panel:#1d1610; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; --red:#7a1518; --gold:#c8a042; }
+  :root { --bg:#15110d; --panel:#1d1610; --line:#3a2e22; --text:#e8dcc8; --muted:#9a8a72; --accent:#c8884f; --red:#7a1518; --gold:#c8a042; --peek:208px; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body { background:var(--bg); color:var(--text);
@@ -75,10 +75,9 @@
     .topbar { margin-bottom:0; }
     .settings-toggle { display:flex; align-items:center; justify-content:center; font-size:14px; padding:9px 13px; }
     .lang button { font-size:12px; padding:9px 13px; }
-    .backdrop { position:fixed; inset:0; z-index:99; background:rgba(0,0,0,.65); opacity:0; pointer-events:none; transition:opacity .3s; }
-    body.settings-open .backdrop { opacity:1; pointer-events:all; }
-    .settings-drawer { display:grid !important; grid-template-columns:1fr; gap:16px; position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--panel); background-image:repeating-linear-gradient(-45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px),repeating-linear-gradient(45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px); border-radius:20px 20px 0 0; border-top:1px solid var(--line); padding:0 20px calc(28px + env(safe-area-inset-bottom,0px)); max-height:82vh; overflow-y:auto; transform:translateY(110%); transition:transform .35s cubic-bezier(.32,.72,0,1); }
-    body.settings-open .settings-drawer { transform:translateY(0); }
+    .backdrop { display:none; }
+    .settings-drawer { display:grid; grid-template-columns:1fr; gap:16px; position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--panel); background-image:repeating-linear-gradient(-45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px),repeating-linear-gradient(45deg,transparent 0,transparent 5px,rgba(200,136,79,.035) 5px,rgba(200,136,79,.035) 6px); border-radius:20px 20px 0 0; border-top:1px solid var(--line); padding:0 20px calc(20px + env(safe-area-inset-bottom,0px)); max-height:var(--peek); overflow:hidden; transition:max-height .35s cubic-bezier(.32,.72,0,1); }
+    .settings-drawer.expanded { max-height:84vh; overflow-y:auto; }
     .sheet-handle { display:block; width:40px; height:4px; background:var(--line); border-radius:2px; margin:14px auto 4px; }
     .styles { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
     .styles::-webkit-scrollbar { display:none; }
@@ -89,7 +88,7 @@
     label.cap { margin-bottom:6px; font-size:10px; }
     .chip { min-height:34px; padding:8px 3px; font-size:11px; display:flex; align-items:center; justify-content:center; }
     button.act { min-height:40px; padding:10px; }
-    main { width:100%; max-width:100vw; flex:1; align-items:flex-start; padding:18px 14px 24px; }
+    main { width:100%; max-width:100vw; flex:1; align-items:flex-start; padding:18px 14px calc(var(--peek) + 16px); }
     .frame { width:100%; max-width:100%; min-width:0; padding:10px; overflow:hidden; }
     canvas { max-width:100%; max-height:62vh; margin:0 auto; }
   }
@@ -132,14 +131,14 @@
     <div id="styles"></div>
   </div>
 
-  <div class="field field-format">
-    <label class="cap" data-i18n="format">Format</label>
-    <div class="fmt" id="fmt"></div>
-  </div>
-
   <div class="field field-range">
     <label class="cap"><span data-i18n="detail">Detail</span> <b id="resVal">140</b></label>
     <input type="range" id="res" min="72" max="216" step="4" value="140">
+  </div>
+
+  <div class="field field-format">
+    <label class="cap" data-i18n="format">Format</label>
+    <div class="fmt" id="fmt"></div>
   </div>
 
   <div class="field field-range">
@@ -1379,10 +1378,30 @@ function applyLang(nextLang){
 }
 document.getElementById('langEn').onclick=()=>applyLang('en');
 document.getElementById('langRu').onclick=()=>applyLang('ru');
-function openSettings(){ document.body.classList.add('settings-open'); document.getElementById('settingsToggle').classList.add('on'); }
-function closeSettings(){ document.body.classList.remove('settings-open'); document.getElementById('settingsToggle').classList.remove('on'); }
-document.getElementById('settingsToggle').onclick=()=>document.body.classList.contains('settings-open')?closeSettings():openSettings();
-document.getElementById('backdrop').onclick=closeSettings;
+(function(){
+  const sheet=document.getElementById('settingsDrawer');
+  const handle=sheet.querySelector('.sheet-handle');
+  const toggle=document.getElementById('settingsToggle');
+  const PEEK=208;
+  function isMobile(){ return window.innerWidth<=760; }
+  function initSheet(){ if(isMobile()){ sheet.style.transition='none'; sheet.style.maxHeight=PEEK+'px'; sheet.style.overflow='hidden'; sheet.classList.remove('expanded'); toggle.classList.remove('on'); } else { sheet.style.maxHeight=''; sheet.style.overflow=''; sheet.classList.remove('expanded'); } }
+  initSheet();
+  window.addEventListener('resize', initSheet);
+  function snap(exp){
+    const MAX=window.innerHeight*.84;
+    sheet.style.transition='max-height .35s cubic-bezier(.32,.72,0,1)';
+    sheet.style.maxHeight=(exp?MAX:PEEK)+'px';
+    sheet.classList.toggle('expanded',exp);
+    sheet.style.overflow=exp?'hidden auto':'hidden';
+    toggle.classList.toggle('on',exp);
+  }
+  handle.addEventListener('click',()=>snap(!sheet.classList.contains('expanded')));
+  toggle.onclick=()=>snap(!sheet.classList.contains('expanded'));
+  let startY,startH;
+  handle.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;startH=sheet.getBoundingClientRect().height;sheet.style.transition='none';},{passive:true});
+  handle.addEventListener('touchmove',e=>{const dy=startY-e.touches[0].clientY;const MAX=window.innerHeight*.84;sheet.style.maxHeight=Math.max(PEEK,Math.min(MAX,startH+dy))+'px';},{passive:true});
+  handle.addEventListener('touchend',()=>{const cur=sheet.getBoundingClientRect().height;const MAX=window.innerHeight*.84;snap(cur>PEEK+(MAX-PEEK)*.35);},{passive:true});
+})();
 applyLang(lang);
 render();
 </script>
